@@ -577,6 +577,7 @@ Refreshes `evil-visual-beginning', `evil-visual-end',
 (defun evil-visual-highlight (&optional arg)
   "Highlight Visual selection, depending on the Visual type.
 With negative ARG, disable highlighting."
+  (message "evil-visual-highlight called")
   (cond
    ((and (numberp arg) (< arg 1))
     (when evil-visual-overlay
@@ -588,6 +589,7 @@ With negative ARG, disable highlighting."
    ((eq evil-visual-selection 'block)
     (when evil-visual-overlay
       (evil-visual-highlight -1))
+    (message "chen===========")
     (evil-visual-highlight-block
      evil-visual-beginning
      evil-visual-end))
@@ -616,6 +618,7 @@ Reuse overlays where possible to prevent flicker."
                        (1+ (min (round temporary-goal-column)
                                 (1- most-positive-fixnum)))))
          beg-col end-col new nlines overlay window-beg window-end)
+    (message "evil-visual-highlight-block called => %s" temporary-goal-column)
     (save-excursion
       ;; calculate the rectangular region represented by BEG and END,
       ;; but put BEG in the upper-left corner and END in the

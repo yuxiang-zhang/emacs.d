@@ -176,7 +176,8 @@ If COUNT is given, move COUNT - 1 lines downward first."
   (move-end-of-line count)
   (when evil-track-eol
     (setq temporary-goal-column most-positive-fixnum
-          this-command 'next-line))
+          this-command 'next-line)
+    (message "evil-end-of-line called => %s" temporary-goal-column))
   (unless (evil-visual-state-p)
     (evil-adjust-cursor)
     (when (eolp)
@@ -1328,6 +1329,7 @@ Save in REGISTER or in the kill-ring with YANK-HANDLER."
       ;; `last-command' appropriately as `evil-end-of-line' would do.
       (let ((temporary-goal-column most-positive-fixnum)
             (last-command 'next-line))
+        (message "evil-ret-gen called => %s" temporary-goal-column)
         (evil-delete beg end 'block register yank-handler)))
      ((eq type 'line)
       (evil-delete beg end type register yank-handler))

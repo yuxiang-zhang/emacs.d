@@ -910,6 +910,7 @@ See also `evil-save-column'."
            (debug t))
   `(let ((goal-column goal-column)
          (temporary-goal-column temporary-goal-column))
+     (message "evil-save-goal-column called => %s" temporary-goal-column)
      ,@body))
 
 (defmacro evil-save-column (&rest body)
@@ -1326,6 +1327,7 @@ Signals an error at buffer boundaries unless NOERROR is non-nil."
                           (if (consp temporary-goal-column)
                               (car temporary-goal-column)
                             temporary-goal-column))))
+             (message "evil-line-move called => %s" col)
              (if line-move-visual
                  (vertical-motion (cons col 0))
                (line-move-finish col opoint (< count 0)))
