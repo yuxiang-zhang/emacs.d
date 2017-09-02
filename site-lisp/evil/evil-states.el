@@ -618,13 +618,21 @@ Reuse overlays where possible to prevent flicker."
                        (1+ (min (round temporary-goal-column)
                                 (1- most-positive-fixnum)))))
          beg-col end-col new nlines overlay window-beg window-end)
-    (message "evil-visual-highlight-block called => %s" temporary-goal-column)
+    (message "evil-visual-highlight-block called => %s %s %s %s %s eol-col=%s"
+             temporary-goal-column
+             (if beg beg "NULL")
+             (if end end "NULL")
+             overlays
+             evil-visual-block-overlays
+             eol-col)
     (save-excursion
       ;; calculate the rectangular region represented by BEG and END,
       ;; but put BEG in the upper-left corner and END in the
       ;; lower-right if not already there
       (setq beg-col (evil-column beg)
             end-col (evil-column end))
+
+      (message "evil-visual-highlight-block called => beg-col=%s end-col=%s" beg-col end-col)
       (when (>= beg-col end-col)
         (if (= beg-col end-col)
             (setq end-col (1+ end-col))

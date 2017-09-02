@@ -779,4 +779,21 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (require 'evil-iedit-state)
 ;; }}
 
+(defadvice evil-visual-highlight-block (around evil-visual-highlight-block-hack activate)
+  (message "original-args=%s" (ad-get-args 0))
+  (let* (tmp)
+    (setq tmp temporary-goal-column)
+    (setq temporary-goal-column 20)
+    ;; (ad-set-arg 0 4)
+    ;; (ad-set-arg 1 43)
+    ;; (setq evil-visual-block-overlays (list (make-overlay 4 14)
+    ;;                                        (make-overlay 19 33)
+    ;;                                        (make-overlay 38 42)))
+    ;; (ad-set-arg 2 (list (make-overlay 4 14)
+	;; 		(make-overlay 19 33)
+	;; 		(make-overlay 38 42)))
+    ad-do-it
+    (message "evil-visual-block-overlays=%s" evil-visual-block-overlays)
+    (setq temporary-goal-column tmp)))
+
 (provide 'init-evil)
