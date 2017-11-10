@@ -66,7 +66,7 @@
 (let ((file-name-handler-alist nil))
   (require 'init-autoload)
   (require 'init-modeline)
-  ;; (require 'cl-lib) ; it's built in since Emacs v24.3
+  (require 'cl-lib)
   (require 'init-compat)
   (require 'init-site-lisp) ;; Must come before elpa, as it may provide package.el
   (require 'init-utils)
@@ -101,13 +101,13 @@
   (require 'init-sessions)
   (require 'init-git)
   (require 'init-markdown)
-  (require 'init-erlang)
+;;  (require 'init-erlang)
   (require 'init-javascript)
   (require 'init-org)
   (require 'init-css)
   (require 'init-python-mode)
-  (require 'init-haskell)
-  (require 'init-ruby-mode)
+;;  (require 'init-haskell)
+;;  (require 'init-ruby-mode)
   (require 'init-lisp)
   (require 'init-elisp)
   (require 'init-yasnippet)
@@ -121,12 +121,12 @@
   ;; init-evil dependent on init-clipboard
   (require 'init-clipboard)
   ;; use evil mode (vi key binding)
-  (require 'init-evil)
+;;  (require 'init-evil)
   (require 'init-multiple-cursors)
   (require 'init-sh)
   (require 'init-ctags)
   (require 'init-bbdb)
-  (require 'init-gnus)
+;;  (require 'init-gnus)
   (require 'init-lua-mode)
   (require 'init-workgroups2)
   (require 'init-term-mode)
@@ -134,9 +134,16 @@
   (require 'init-slime)
   (require 'init-company)
   (require 'init-chinese) ;; cannot be idle-required
+
   ;; need statistics of keyfreq asap
   (require 'init-keyfreq)
   (require 'init-httpd)
+
+  ;;set super key
+  (setq ns-right-option-modifier 'super)
+  (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((dot . t)))
 
   ;; projectile costs 7% startup time
 
@@ -144,21 +151,24 @@
   (require 'init-misc)
 
   ;; comment below line if you want to setup color theme in your own way
-  (if (or (display-graphic-p) (string-match-p "256color"(getenv "TERM"))) (require 'init-color-theme))
+  ;;  (if (or (display-graphic-p) (string-match-p "256color"(getenv "TERM"))) (require 'init-color-theme))
+  (add-to-list 'load-path "~/.emacs.d/themes/")
+  (add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
 
   (require 'init-emacs-w3m)
   (require 'init-hydra)
+  (add-to-list 'auto-mode-alist '("\\.m$" . octave-mode))
+  (add-to-list 'auto-mode-alist '("\\.pl$" . prolog-mode))
 
   ;; {{ idle require other stuff
   (setq idle-require-idle-delay 2)
-  (setq idle-require-symbols '(init-perforce
-                               init-misc-lazy
+  (setq idle-require-symbols '(init-misc-lazy
                                init-which-func
                                init-fonts
                                init-hs-minor-mode
                                init-writting
                                init-pomodoro
-                               init-artbollocks-mode
+                               ;;init-artbollocks-mode
                                init-semantic))
   (idle-require-mode 1) ;; starts loading
   ;; }}
