@@ -53,7 +53,7 @@
      ;; https://github.com/company-mode/company-mode/issues/29
      (setq company-global-modes
            '(not
-             eshell-mode comint-mode erc-mode gud-mode rcirc-mode
+             eshell-mode comint-mode erc-mode gud-mode rcirc-mode org-mode
              minibuffer-inactive-mode))))
 
 ;; {{ setup company-ispell
