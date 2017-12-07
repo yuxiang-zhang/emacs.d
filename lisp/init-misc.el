@@ -243,7 +243,6 @@
   (unless (is-buffer-file-temp)
 
     ;; @see http://xugx2007.blogspot.com.au/2007/06/benjamin-rutts-emacs-c-development-tips.html
-    (setq compilation-window-height 8)
     (setq compilation-finish-functions
           '(compilation-finish-hide-buffer-on-success))
 
@@ -935,9 +934,17 @@ If no region is selected. You will be asked to use `kill-ring' or clipboard inst
                   "*.map"
                   "*.bundle.js"
                   "*.min.css"
+                  "tags"
+                  "TAGS"
+                  "GTAGS"
+                  "GRTAGS"
+                  "GPATH"
+                  "cscope.files"
                   "*.json"
                   "*.log"))
        (add-to-list 'grep-find-ignored-files v))))
 ;; }}
+
+(add-hook 'lispy-mode-hook #'lispyville-mode)
 
 (provide 'init-misc)

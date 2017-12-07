@@ -1,4 +1,4 @@
-;;; counsel-etags.el ---  Fast and complete Ctags/Etags solution using ivy-completion
+;;; counsel-etags.el ---  Fast and complete Ctags/Etags solution using ivy
 
 ;; Copyright (C) 2017  Free Software Foundation, Inc.
 
@@ -7,7 +7,7 @@
 ;; URL: http://github.com/redguardtoo/counsel-etags
 ;; Package-Requires: ((emacs "24.3") (counsel "0.9.1"))
 ;; Keywords: tools, convenience
-;; Version: 1.2.0
+;; Version: 1.3.5
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -37,8 +37,14 @@
 ;; That's all!
 ;;
 ;; Tips:
-;; You can use ivy's negative pattern to filter candidates.
-;; For example, input "keyword1 !keyword2 keyword3" means:
+;; - Add below code into "~/.emacs" to auto-update scan code:
+;;   (add-hook 'prog-mode-hook
+;;     (lambda ()
+;;       (add-hook 'after-save-hook
+;;                 'counsel-etags-virtual-update-tags 'append 'local)))
+;;
+;; - You can use ivy's negative pattern to filter candidates.
+;;   For example, input "keyword1 !keyword2 keyword3" means:
 ;;   "(keyword1 and (not (keyword2 or keyword3))"
 ;;
 ;; See https://github.com/redguardtoo/counsel-etags/ for more advanced tips.
@@ -153,7 +159,16 @@ You can setup it using \".dir-locals.el\"."
   :type '(repeat 'string))
 
 (defcustom counsel-etags-project-root nil
-  "Project root directory.  The directory is automatically detect if it's nil.")
+  "Project root directory.  The directory is automatically detect if it's nil."
+  :group 'counsel-etags
+  :type 'string)
+
+(defcustom counsel-etags-candidates-optimize-limit 64
+  "Re-order candidates if andidate count is less than this variable's value.
+Canditates whose file path has Levenshtein distance to current file/directory.
+You may set it to nil to disable re-ordering for performance reason."
+  :group 'counsel-etags
+  :type 'boolean)
 
 (defcustom counsel-etags-max-file-size 64
   "Ignore files bigger than `counsel-etags-max-file-size' kilobytes."
@@ -181,10 +196,10 @@ Default value is 300 seconds."
 (defcustom counsel-etags-tags-program nil
   "Tags Program.  Program is automatically detected if it's nil.
 You can setup this variable manually instead.
-If you use Emacs etags, '(setq counsel-etags-tags-program \"etags\")'.
-If you use Exuberant Ctags, '(setq counsel-etags-tags-program \"ctags -e -L\"'.
-You may specify extra options for your tags program.  For example, as C developer
-may set this variable to \"ctags --c-kinds=defgpstux -e -L\" "
+If you use Emacs etags, set this varilabe to \"etags\".'.
+If you use Exuberant Ctags, set this varilabe to \"ctags -e -L\".'.
+You may add extra options to tags program.  For example, as C developer
+may set this variable to \"ctags --c-kinds=defgpstux -e -L\"."
   :group 'counsel-etags
   :type 'string)
 
@@ -333,13 +348,95 @@ If FORCE is t, the commmand is executed without checking the timer."
     (insert-file-contents file)
     (buffer-string)))
 
+(defmacro counsel-etags--tset (table x y val row-width)
+  "Set TABLE cell at positon (X, Y) with VAL and ROW-WIDTH."
+  `(aset ,table (+ ,x (* ,row-width ,y)) ,val))
+
+(defmacro counsel-etags--tref (table x y row-width)
+  "Get TABLE cell at positon (X, Y) with ROW-WIDTH."
+  `(aref ,table (+ ,x (* ,row-width ,y))))
+
+(defun counsel-etags-levenshtein-distance (str1 str2 hash)
+  "Return the edit distance between strings STR1 and STR2.
+HASH store the previous distance."
+  (let* ((val (gethash str1 hash)))
+    (unless val
+      (let* ((length-str1 (length str1))
+             (length-str2 (length str2))
+             ;; it's impossible files name has more than 512 characters
+             (d (make-vector (* (1+ length-str1) (1+ length-str2)) 0))
+             ;; d is a table with lenStr2+1 rows and lenStr1+1 columns
+             (row-width (1+ length-str1))
+             (rlt 0)
+             (i 0)
+             (j 0))
+        ;; i and j are used to iterate over str1 and str2
+        (while (<= i length-str1) ;; for i from 0 to lenStr1
+          (counsel-etags--tset d i 0 i row-width) ;; d[i, 0] := i
+          (setq i (1+ i)))
+        (while (<= j length-str2) ;; for j from 0 to lenStr2
+          (counsel-etags--tset d 0 j j row-width) ;; d[0, j] := j
+          (setq j (1+ j)))
+        (setq i 1)
+        (while (<= i length-str1) ;; for i from 1 to lenStr1
+          (setq j 1)
+          (while (<= j length-str2) ;; for j from 1 to lenStr2
+            (let* ((cost
+                    ;; if str[i] = str[j] then cost:= 0 else cost := 1
+                    (if (equal (aref str1 (1- i)) (aref str2 (1- j))) 0 1))
+                   ;; d[i-1, j] + 1     // deletion
+                   (deletion (1+ (counsel-etags--tref d (1- i) j row-width)))
+                   ;; d[i, j-1] + 1     // insertion
+                   (insertion (1+ (counsel-etags--tref d i (1- j) row-width)))
+                   ;; d[i-j,j-1] + cost // substitution
+                   (substitution (+ (counsel-etags--tref d (1- i) (1- j) row-width) cost))
+                   (distance (min insertion deletion substitution)))
+              (counsel-etags--tset d i j distance row-width)
+              (setq j (1+ j))))
+          (setq i (1+ i))) ;; i++
+        ;; return d[lenStr1, lenStr2] or the max distance
+        (setq val (counsel-etags--tref d length-str1 length-str2 row-width))
+        (puthash str1 val hash)))
+    val))
+
+(defun counsel-etags--strip-path (path strip-count)
+  "Strip PATH with STRIP-COUNT."
+  (let* ((i (1- (length path))))
+    (while (and (> strip-count 0)
+            (> i 0))
+      (when (= (aref path i) ?/)
+        (setq strip-count (1- strip-count)))
+      (setq i (1- i)))
+    (if (= 0 strip-count) (substring path (+ 1 i))
+        path)))
+
+(defun counsel-etags-sort-candidates-maybe (cands strip-count is-string)
+  "Sort CANDS if `counsel-etags-candidates-optimize-limit' is t.
+STRIP-COUNT strips the string before calculating distance.
+IS-STRING is t if the candidate is string."
+  (let* ((ref (and buffer-file-name
+                   (counsel-etags--strip-path buffer-file-name strip-count))))
+    (cond
+     ((and ref
+           counsel-etags-candidates-optimize-limit
+           (< (length cands) counsel-etags-candidates-optimize-limit))
+      (let* ((h (make-hash-table :test 'equal)))
+        (sort cands `(lambda (item1 item2)
+                       (let* ((a (counsel-etags--strip-path (file-truename (if ,is-string item1 (cadr item1))) ,strip-count))
+                              (b (counsel-etags--strip-path (file-truename (if ,is-string item2 (cadr item2))) ,strip-count)))
+                         (< (counsel-etags-levenshtein-distance a ,ref ,h)
+                            (counsel-etags-levenshtein-distance b ,ref ,h)))))))
+     (t
+      cands))))
+
 (defun counsel-etags-collect-cands (tagname &optional dir)
   "Parse tags file to find occurrences of TAGNAME in DIR."
   (let* ((force-tags-file (and dir
                                (file-exists-p (concat (file-name-as-directory dir) "TAGS"))
                                (concat (file-name-as-directory dir) "TAGS")))
-         (str (counsel-etags-read-file (or force-tags-file
-                                           (counsel-etags-locate-tags-file))))
+         (tags-file (or force-tags-file
+                        (counsel-etags-locate-tags-file)))
+         (str (counsel-etags-read-file tags-file))
          (tag-regex (concat "^.*?\\(" "\^?\\(.+[:.']" tagname "\\)\^A"
                             "\\|" "\^?" tagname "\^A"
                             "\\|" "\\<" tagname "[ \f\t()=,;]*\^?[0-9,]"
@@ -349,6 +446,7 @@ If FORCE is t, the commmand is executed without checking the timer."
     (with-temp-buffer
       (insert str)
       (modify-syntax-entry ?_ "w")
+
       (goto-char (point-min))
       (while (search-forward tagname nil t)
         (beginning-of-line)
@@ -364,11 +462,12 @@ If FORCE is t, the commmand is executed without checking the timer."
                              (match-string-no-properties 1))))
             (add-to-list 'cands
                          (cons (format "%s:%d:%s" filename linenum tag-line)
-                               (list (concat (file-name-directory (counsel-etags-locate-tags-file)) filename)
+                               (list (concat (file-name-directory (counsel-etags-locate-tags-file))
+                                             filename)
                                      linenum
                                      tagname))))))
       (modify-syntax-entry ?_ "_"))
-    cands))
+    (counsel-etags-sort-candidates-maybe cands 3 nil)))
 
 (defun counsel-etags-encode(s)
   "Encode S."
@@ -439,21 +538,27 @@ Focus on TAGNAME if it's not nil."
   (add-to-list 'counsel-etags-tagname-history item)
   (counsel-etags-open-file-internal item))
 
+(defmacro counsel-etags-push-marker-stack (mark)
+  "Save current MARK (position)."
+  `(when (fboundp 'xref-push-marker-stack)
+     (xref-push-marker-stack ,mark)))
+
 (defun counsel-etags-open-cand (cands time)
   "Open CANDS.  Start open tags file at TIME."
   ;; mark current point for `pop-tag-mark'
-  (when (fboundp 'xref-push-marker-stack)
-    (xref-push-marker-stack))
-  (cond
-   ((= 1 (length cands))
-    ;; open the file directly
-    (counsel-etags-open-file (car cands)))
-   (t
-    (ivy-read (format  "Find Tag (%.01f seconds): "
-                       (float-time (time-since time)))
-              cands
-              :action #'counsel-etags-open-file
-              :caller 'counsel-etags-find-tag))))
+  (let* ((v-last-mark (point-marker)))
+    (cond
+     ((= 1 (length cands))
+      ;; open the file directly
+      (counsel-etags-push-marker-stack v-last-mark)
+      (counsel-etags-open-file (car cands)))
+     (t
+      (ivy-read (format  "Find Tag (%.01f seconds): "
+                         (float-time (time-since time)))
+                cands
+                :action #'counsel-etags-open-file
+                :caller 'counsel-etags-find-tag)
+      (counsel-etags-push-marker-stack v-last-mark)))))
 
 (defun counsel-etags-find-tag-occur ()
   "Generate a custom occur buffer for `counsel-etags-find-tag'."
@@ -506,6 +611,7 @@ Focus on TAGNAME if it's not nil."
 (defun counsel-etags-find-tag ()
   "Input tagname to find tag."
   (interactive)
+  (counsel-etags-tags-file-must-exist)
   (let* ((tagname (read-string "Please input tag name:")))
     (when (and tagname (not (string= tagname "")))
         (counsel-etags-find-tag-api tagname))))
@@ -540,8 +646,8 @@ used by other hooks or commands.  The tags updating might now happen."
          (tags-file (counsel-etags-locate-tags-file)))
     (when (and dir
                tags-file
-               (string-match-p (file-name-directory tags-file)
-                               dir))
+               (string-match-p (file-name-directory (file-truename tags-file))
+                               (file-truename dir)))
       (cond
        ((not counsel-etags-timer)
         ;; start timer if not started yet
@@ -623,28 +729,31 @@ Extended regex like (pattern1|pattern2) is used.
 If DEFAULT-KEYWORD is not nil, it's used as grep keyword.
 If HINT is not nil, it's used as grep hint."
   (interactive)
-  (let* ((keyword (if default-keyword default-keyword
+  (let* ((v-last-mark (point-marker))
+         (keyword (if default-keyword default-keyword
                     (counsel-etags-read-keyword "Enter grep pattern: ")))
          (default-directory (counsel-etags-locate-project))
          (time (current-time))
-         (collection (split-string (shell-command-to-string (counsel-etags-grep-cli keyword nil)) "[\r\n]+" t))
+         (cands (split-string (shell-command-to-string (counsel-etags-grep-cli keyword nil)) "[\r\n]+" t))
          (dir-summary (file-name-as-directory (file-name-base (directory-file-name (counsel-etags-locate-project))))))
 
     (setq counsel-etags-opts-cache (plist-put counsel-etags-opts-cache :ignore-dirs counsel-etags-ignore-directories))
     (setq counsel-etags-opts-cache (plist-put counsel-etags-opts-cache :ignore-file-names counsel-etags-ignore-filenames))
 
+    ;; Slow down grep 10 times
     (ivy-read (concat hint (format "Grep \"%s\" at %s (%.01f seconds): "
                                    keyword
                                    dir-summary
                                    (float-time (time-since time))))
-              collection
+              cands
               :history 'counsel-git-grep-history ; share history with counsel
               :action `(lambda (line)
                          (let* ((lst (split-string line ":"))
                                 (file (concat (counsel-etags-locate-project) (car lst)))
                                 (linenum (string-to-number (cadr lst))))
                            (counsel-etags-open-file-api file linenum)))
-              :caller 'counsel-etags-grep)))
+              :caller 'counsel-etags-grep)
+    (counsel-etags-push-marker-stack v-last-mark)))
 
 ;;;###autoload
 (defun counsel-etags-grep-symbol-at-point ()
