@@ -1,9 +1,6 @@
 ;; @see https://bitbucket.org/lyro/evil/issue/360/possible-evil-search-symbol-forward
 ;; evil 1.0.8 search word instead of symbol
 (setq evil-symbol-word-search t)
-(require 'undo-tree)
-;; For the motions g; g, and for the last-change-register ., 
-(require 'goto-chg)
 
 ;; @see https://bitbucket.org/lyro/evil/issue/511/let-certain-minor-modes-key-bindings
 (defmacro adjust-major-mode-keymap-with-evil (m &optional r)
@@ -254,12 +251,13 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; }}
 
 ;; {{ https://github.com/syl20bnr/evil-escape
-(require 'evil-escape)
-(setq-default evil-escape-delay 0.5)
+(setq-default evil-escape-delay 0.3)
 (setq evil-escape-excluded-major-modes '(dired-mode))
 (setq-default evil-escape-key-sequence "kj")
+;; disable evil-escape when input method is on
 (evil-escape-mode 1)
 ;; }}
+
 
 ;; Move back the cursor one position when exiting insert mode
 (setq evil-move-cursor-back t)
@@ -345,6 +343,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (define-key evil-ex-completion-map (kbd "M-n") 'next-complete-history-element)
 
 (define-key evil-normal-state-map "Y" (kbd "y$"))
+;; (define-key evil-normal-state-map (kbd "RET") 'ivy-switch-buffer-by-pinyin) ; RET key is preserved for occur buffer
 (define-key evil-normal-state-map "go" 'goto-char)
 (define-key evil-normal-state-map (kbd "M-y") 'counsel-browse-kill-ring)
 (define-key evil-normal-state-map (kbd "C-]") 'counsel-etags-find-tag-at-point)
@@ -473,16 +472,18 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "cbu" 'cb-get-url-from-controller
        "ht" 'counsel-etags-find-tag-at-point ; better than find-tag C-]
        "rt" 'counsel-etags-recent-tag
+       "ft" 'counsel-etags-find-tag
        "mm" 'counsel-bookmark-goto
        "mk" 'bookmark-set
        "yy" 'counsel-browse-kill-ring
+       "cf" 'counsel-grep ; grep current buffer
        "gf" 'counsel-git ; find file
        "gg" 'counsel-git-grep-by-selected ; quickest grep should be easy to press
        "gm" 'counsel-git-find-my-file
        "gs" (lambda ()
               (interactive)
               (let* ((ffip-diff-backends
-                      '(("Show git git commit" . (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
+                      '(("Show git commit" . (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
                                                        (collection (split-string (shell-command-to-string git-cmd) "\n" t))
                                                        (item (ffip-completing-read "git log:" collection)))
                                                   (when item

@@ -50,7 +50,6 @@
               compilation-scroll-output t
               ediff-split-window-function 'split-window-horizontally
               ediff-window-setup-function 'ediff-setup-windows-plain
-              save-interprogram-paste-before-kill t
               grep-highlight-matches t
               grep-scroll-output t
               indent-tabs-mode nil
@@ -78,34 +77,8 @@
     (nconc (split-string (shell-command-to-string "git branch --no-color --all") "\n" t)
            (split-string (shell-command-to-string git-cmd) "\n" t))))
 
-(defun my-git-diff()
-  "Run 'git diff version'."
-  (let* ((default-directory (locate-dominating-file default-directory ".git"))
-         (line (ivy-read "diff current file:" (my-git-versions)))
-         (version (replace-regexp-in-string "^ *\\*? *" "" (car (split-string line "|" t)))))
-    (shell-command-to-string (format "git --no-pager diff %s" version))))
-
-
-(defun my-git-diff-current-file ()
-  "Run 'git diff version:current-file current-file'."
-  (let* ((default-directory (locate-dominating-file default-directory ".git"))
-         (line (ivy-read "diff current file:" (my-git-versions))))
-    (shell-command-to-string (format "git --no-pager diff %s:%s %s"
-                                     (replace-regexp-in-string "^ *\\*? *" "" (car (split-string line "|" t)))
-                                     (file-relative-name buffer-file-name default-directory)
-                                     buffer-file-name))))
 
 (setq ffip-match-path-instead-of-filename t)
-;; I only use git
-(setq ffip-diff-backends '(my-git-diff-current-file
-                           my-git-diff
-                           ;; `git log -p' current file
-                           ("git diff --cached" . "cd $(git rev-parse --show-toplevel) && git diff --cached")
-                           ("git log -p" . (shell-command-to-string (format "cd $(git rev-parse --show-toplevel) && git --no-pager log --date=short -p '%s'"
-                                                                            (buffer-file-name))))
-                           ("git log -Sstring -p" . (shell-command-to-string (format "cd $(git rev-parse --show-toplevel) && git --no-pager log --date=short -S'%s' -p"
-                                                            (read-string "Git search string:"))))
-                           ("diff from `kill-ring'" . (car kill-ring))))
 
 (defun neotree-project-dir ()
   "Open NeoTree using the git root."
@@ -502,13 +475,14 @@ See \"Reusing passwords for several connections\" from INFO.
 ;; }}
 
 ;; @see http://www.emacswiki.org/emacs/EasyPG#toc4
-;; besides, use gnupg 1.4.9 instead of 2.0
 (defadvice epg--start (around advice-epg-disable-agent disable)
   "Make epg--start not able to find a gpg-agent"
   (let ((agent (getenv "GPG_AGENT_INFO")))
     (setenv "GPG_AGENT_INFO" nil)
     ad-do-it
     (setenv "GPG_AGENT_INFO" agent)))
+
+(setq epa-pinentry-mode 'loopback)
 
 ;; https://github.com/abo-abo/ace-window
 ;; `M-x ace-window ENTER m` to swap window
