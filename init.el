@@ -1,3 +1,5 @@
+(set-keyboard-coding-system nil)
+
 ;; -*- coding: utf-8 -*-
 ;(defvar best-gc-cons-threshold gc-cons-threshold "Best default gc threshold value. Should't be too big.")
 
@@ -139,12 +141,6 @@
   (require 'init-keyfreq)
   (require 'init-httpd)
 
-  ;;set super key
-  (setq ns-right-option-modifier 'super)
-  (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((dot . t)))
-
   ;; projectile costs 7% startup time
 
   ;; misc has some crucial tools I need immediately
@@ -157,8 +153,7 @@
 
   (require 'init-emacs-w3m)
   (require 'init-hydra)
-  (add-to-list 'auto-mode-alist '("\\.m$" . octave-mode))
-  (add-to-list 'auto-mode-alist '("\\.pl$" . prolog-mode))
+
 
   ;; {{ idle require other stuff
   (setq idle-require-idle-delay 2)
