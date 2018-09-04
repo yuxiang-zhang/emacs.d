@@ -11,18 +11,82 @@
      ,@clean-up))
 
 ;; {{ copied from http://ergoemacs.org/emacs/elisp_read_file_content.html
-(defun get-string-from-file (filePath)
-  "Return filePath's file content."
+(defun get-string-from-file (file)
+  "Return FILE's content."
   (with-temp-buffer
-    (insert-file-contents filePath)
+    (insert-file-contents file)
     (buffer-string)))
 
-(defun read-lines (filePath)
-  "Return a list of lines of a file at filePath."
+(defun read-lines (file)
+  "Return a list of lines of FILE."
   (with-temp-buffer
-    (insert-file-contents filePath)
+    (insert-file-contents file)
     (split-string (buffer-string) "\n" t)))
 ;; }}
+
+(defun split-camel-case (word)
+  "Split camel case WORD into a list of strings.
+Ported from 'https://github.com/fatih/camelcase/blob/master/camelcase.go'."
+  (let* ((case-fold-search nil)
+         (len (length word))
+         ;; ten sub-words is enough
+         (runes [nil nil nil nil nil nil nil nil nil nil])
+         (runes-length 0)
+         (i 0)
+         ch
+         (last-class 0)
+         (class 0)
+         rlt)
+
+    ;; split into fields based on class of character
+    (while (< i len)
+      (setq ch (elt word i))
+      (cond
+       ;; lower case
+       ((and (>= ch ?a) (<= ch ?z))
+        (setq class 1))
+       ;; upper case
+       ((and (>= ch ?A) (<= ch ?Z))
+        (setq class 2))
+       ((and (>= ch ?0) (<= ch ?9))
+        (setq class 3))
+       (t
+        (setq class 4)))
+
+      (cond
+       ((= class last-class)
+        (aset runes
+              (1- runes-length)
+              (concat (aref runes (1- runes-length)) (char-to-string ch))))
+       (t
+        (aset runes runes-length (char-to-string ch))
+        (setq runes-length (1+ runes-length))))
+      (setq last-class class)
+      ;; end of while
+      (setq i (1+ i)))
+
+    ;; handle upper case -> lower case sequences, e.g.
+    ;;     "PDFL", "oader" -> "PDF", "Loader"
+    (setq i 0)
+    (while (< i (1- runes-length))
+      (let* ((ch-first (aref (aref runes i) 0))
+             (ch-second (aref (aref runes (1+ i)) 0)))
+        (when (and (and (>= ch-first ?A) (<= ch-first ?Z))
+                   (and (>= ch-second ?a) (<= ch-second ?z)))
+          (aset runes (1+ i) (concat (substring (aref runes i) -1) (aref runes (1+ i))))
+          (aset runes i (substring (aref runes i) 0 -1))))
+      (setq i (1+ i)))
+
+    ;; construct final result
+    (setq i 0)
+    (while (< i runes-length)
+      (when (> (length (aref runes i)) 0)
+        (setq rlt (add-to-list 'rlt (aref runes i) t)))
+      (setq i (1+ i)))
+     rlt))
+
+(defun nonempty-lines (s)
+  (split-string s "[\r\n]+" t))
 
 ;; Handier way to add modes to auto-mode-alist
 (defun add-auto-mode (mode &rest patterns)
@@ -30,6 +94,16 @@
   (dolist (pattern patterns)
     (add-to-list 'auto-mode-alist (cons pattern mode))))
 
+
+(defun font-belongs-to (pos fonts)
+  "Current font at POS belongs to FONTS."
+  (let* ((fontfaces (get-text-property pos 'face)))
+    (when (not (listp fontfaces))
+      (setf fontfaces (list fontfaces)))
+    (delq nil
+          (mapcar (lambda (f)
+                    (member f fonts))
+                  fontfaces))))
 
 ;;----------------------------------------------------------------------------
 ;; String utilities missing from core emacs
@@ -52,6 +126,11 @@
 (defun directory-of-library (library-name)
   "Return the directory in which the `LIBRARY-NAME' load file is found."
   (file-name-as-directory (file-name-directory (find-library-name library-name))))
+
+(defun path-in-directory-p (file directory)
+  "FILE is in DIRECTORY."
+  (let* ((pattern (concat "^" (file-name-as-directory directory))))
+    (if (string-match-p pattern file) file)))
 
 (defmacro my-select-from-kill-ring (fn &optional n)
   "Use `browse-kill-ring' if it exists and N is 1.
@@ -100,6 +179,12 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
 (defun my-line-str (&optional line-end)
   (buffer-substring-no-properties (line-beginning-position)
                                   (if line-end line-end (line-end-position))))
+
+(defun my-is-one-line (b e)
+  (save-excursion
+    (goto-char b)
+    (and (<= (line-beginning-position) b)
+         (<= e (1+ (line-end-position))))))
 
 (defun my-buffer-str ()
   (buffer-substring-no-properties (point-min) (point-max)))
@@ -171,6 +256,11 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
   (or (> (buffer-size) (* 5000 64))
       (> (line-number-at-pos (point-max)) 5000)))
 
+(defun file-too-big-p (file)
+  (> (nth 7 (file-attributes file))
+     (* 5000 64)))
+
+(defvar force-buffer-file-temp-p nil)
 (defun is-buffer-file-temp ()
   (interactive)
   "If (buffer-file-name) is nil or a temp file or HTML file converted from org file"
@@ -190,6 +280,8 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
      ((and (string-match "\.html$" f)
            (file-exists-p (setq org (replace-regexp-in-string "\.html$" ".org" f))))
       ;; file is a html file exported from org-mode
+      (setq rlt t))
+     (force-buffer-file-temp-p
       (setq rlt t))
      (t
       (setq cached-normal-file-full-path f)
@@ -246,34 +338,46 @@ you can '(setq my-mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
                             (cond
                              (*unix*
                               "xsel or xclip")
-                             ((or *cygwin* *wind64*)
+                             ((or *cygwin* *win64*)
                               "cygutils-extra from Cygwin")
                              (t
                               "CLI clipboard tools"))))
            (setq retval nil)))
         retval)))
 
-(setq simpleclip-works (test-simpleclip) )
+(setq simpleclip-works (test-simpleclip))
 
 (defun my-gclip ()
-  (if simpleclip-works (simpleclip-get-contents)
-    (cond
-     ((eq system-type 'darwin)
-      (with-output-to-string
-        (with-current-buffer standard-output
-          (call-process "/usr/bin/pbpaste" nil t nil "-Prefer" "txt"))))
-     ((eq system-type 'cygwin)
-      (with-output-to-string
-        (with-current-buffer standard-output
-          (call-process "getclip" nil t nil))))
-     ((memq system-type '(gnu gnu/linux gnu/kfreebsd))
-      (with-output-to-string
-        (with-current-buffer standard-output
-          (call-process "xsel" nil t nil "--clipboard" "--output")))))))
+  (unless (featurep 'simpleclip) (require 'simpleclip))
+  (cond
+   (simpleclip-works
+    (simpleclip-get-contents))
+   ((eq system-type 'darwin)
+    (with-output-to-string
+      (with-current-buffer standard-output
+        (call-process "/usr/bin/pbpaste" nil t nil "-Prefer" "txt"))))
+   ((eq system-type 'cygwin)
+    (with-output-to-string
+      (with-current-buffer standard-output
+        (call-process "getclip" nil t nil))))
+   ((memq system-type '(gnu gnu/linux gnu/kfreebsd))
+    (let* ((powershell-program (executable-find "powershell.exe")))
+           (cond
+            (powershell-program
+             ;; PowerLine adds extra white space character at the end of text
+             (string-trim-right
+              (with-output-to-string
+                (with-current-buffer standard-output
+                  (call-process powershell-program nil t nil "-command" "Get-Clipboard")))))
+            (t
+             (with-output-to-string
+               (with-current-buffer standard-output
+                 (call-process "xsel" nil t nil "--clipboard" "--output")))))))))
 
 (defun my-pclip (str-val)
-  (if simpleclip-works (simpleclip-set-contents str-val)
     (cond
+     (simpleclip-works
+      (simpleclip-set-contents str-val))
      ((eq system-type 'darwin)
       (with-temp-buffer
         (insert str-val)
@@ -283,9 +387,15 @@ you can '(setq my-mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
         (insert str-val)
         (call-process-region (point-min) (point-max) "putclip")))
      ((memq system-type '(gnu gnu/linux gnu/kfreebsd))
-      (with-temp-buffer
-        (insert str-val)
-        (call-process-region (point-min) (point-max) "xsel" nil nil nil "--clipboard" "--input"))))))
+      (let* ((win64-clip-program (executable-find "clip.exe")))
+        (with-temp-buffer
+          (insert str-val)
+          (cond
+           ;; Linux Subsystem on Windows 10
+           (win64-clip-program
+            (call-process-region (point-min) (point-max) win64-clip-program))
+           (t
+            (call-process-region (point-min) (point-max) "xsel" nil nil nil "--clipboard" "--input"))))))))
 ;; }}
 
 (defun make-concated-string-from-clipboard (concat-char)
@@ -318,8 +428,11 @@ you can '(setq my-mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
       (local-set-key (kbd "C-c C-c")
                      (lambda ()
                        (interactive)
-                       (diff-region-exit-from-certain-buffer ,buffer-name)))
-      )))
-
+                       (diff-region-exit-from-certain-buffer ,buffer-name))))))
 ;; }}
+
+(defun should-use-minimum-resource ()
+  (and buffer-file-name
+       (string-match-p "\.\\(mock\\|min\\)\.js" buffer-file-name)))
+
 (provide 'init-utils)

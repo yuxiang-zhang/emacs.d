@@ -35,21 +35,9 @@
 ;; }}
 
 ;; {{ flyspell setup for js2-mode
-(defun js-flyspell-verify ()
-  (let* ((f (get-text-property (- (point) 1) 'face)))
-    ;; *whitelist*
-    ;; only words with following font face will be checked
-    (memq f '(js2-function-call
-              js2-function-param
-              js2-object-property
-              font-lock-variable-name-face
-              font-lock-string-face
-              font-lock-function-name-face
-              font-lock-builtin-face
-              rjsx-tag
-              rjsx-attr))))
-(put 'js2-mode 'flyspell-mode-predicate 'js-flyspell-verify)
-(put 'rjsx-mode 'flyspell-mode-predicate 'js-flyspell-verify)
+(local-require 'wucuo)
+(put 'js2-mode 'flyspell-mode-predicate 'wucuo-generic-check-word-predicate)
+(put 'rjsx-mode 'flyspell-mode-predicate 'wucuo-generic-check-word-predicate)
 ;; }}
 
 (eval-after-load 'flyspell
@@ -76,8 +64,11 @@ Please note RUN-TOGETHER will make aspell less capable. So it should only be use
         ((string-match "aspell$" ispell-program-name)
          ;; force the English dictionary, support Camel Case spelling check (tested with aspell 0.6)
          (setq args (list "--sug-mode=ultra" "--lang=en_US"))
+         ;; "--run-together-min" could not be 3, see `check` in "speller_impl.cpp" . The algorithm is
+         ;; not precise .
+         ;; Run `echo tasteTableConfig | aspell --lang=en_US -C --run-together-limit=16  --encoding=utf-8 -a` in shell.
          (if run-together
-           (setq args (append args '("--run-together" "--run-together-limit=16" "--run-together-min=2")))))
+             (setq args (append args '("--run-together" "--run-together-limit=16")))))
         ((string-match "hunspell$" ispell-program-name)
          (setq args nil))))
     args))
@@ -101,9 +92,16 @@ Please note RUN-TOGETHER will make aspell less capable. So it should only be use
 ;; hunspell will search for a dictionary called `en_US' in the path specified by
 ;; `$DICPATH'
 
+(defvar force-to-use-hunspell nil
+  "If t, force to use hunspell.  Or else, search aspell at first and fall
+back to hunspell if aspell is not found.")
+
 (cond
- ((executable-find "aspell")
+ ;; use aspell
+ ((and (not force-to-use-hunspell) (executable-find "aspell"))
   (setq ispell-program-name "aspell"))
+
+ ;; use hunspell
  ((executable-find "hunspell")
   (setq ispell-program-name "hunspell")
   (setq ispell-local-dictionary "en_US")
@@ -125,8 +123,7 @@ Please note RUN-TOGETHER will make aspell less capable. So it should only be use
     ad-do-it
     ;; restore our own ispell arguments
     (setq ispell-extra-args old-ispell-extra-args)
-    (ispell-kill-ispell t)
-    ))
+    (ispell-kill-ispell t)))
 
 (defadvice flyspell-auto-correct-word (around my-flyspell-auto-correct-word activate)
   (let* ((old-ispell-extra-args ispell-extra-args))

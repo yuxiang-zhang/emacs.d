@@ -12,7 +12,6 @@
 (eval-after-load 'company
   '(progn
      ;; @see https://github.com/company-mode/company-mode/issues/348
-     (require 'company-statistics)
      (company-statistics-mode)
 
      (add-to-list 'company-backends 'company-cmake)
@@ -73,9 +72,12 @@
     (make-local-variable 'company-backends)
     (add-to-list 'company-backends 'company-ispell)
     ;; https://github.com/redguardtoo/emacs.d/issues/473
-    (if (and (boundp 'ispell-alternate-dictionary)
-             ispell-alternate-dictionary)
-        (setq company-ispell-dictionary ispell-alternate-dictionary))))
+    (cond
+     ((and (boundp 'ispell-alternate-dictionary)
+           ispell-alternate-dictionary)
+      (setq company-ispell-dictionary ispell-alternate-dictionary))
+     (t
+       (setq company-ispell-dictionary (file-truename "~/.emacs.d/misc/english-words.txt"))))))
 
 ;; message-mode use company-bbdb.
 ;; So we should NOT turn on company-ispell

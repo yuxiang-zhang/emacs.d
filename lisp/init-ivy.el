@@ -1,5 +1,5 @@
 (require 'counsel)
-;; (ivy-mode 1)
+(ivy-mode 1) ;; magit needs this
 ;; not good experience
 ;; (setq ivy-use-virtual-buffers t)
 (global-set-key (kbd "C-c C-r") 'ivy-resume)
@@ -21,17 +21,23 @@
                       (read-string hint)))))
     keyword))
 
-(defun my-counsel-recentf ()
-  "Find a file on `recentf-list'."
-  (interactive)
+(defun my-counsel-recentf (&optional n)
+  "Find a file on `recentf-list'.
+If N is not nil, only list files in current project."
+  (interactive "P")
   (require 'recentf)
   (recentf-mode)
-  (ivy-read "Recentf: " (mapcar #'substring-no-properties recentf-list)
-            :initial-input (if (region-active-p) (my-selected-str))
-            :action (lambda (f)
-                      (with-ivy-window
-                       (find-file f)))
-            :caller 'counsel-recentf))
+  (let* ((files (mapcar #'substring-no-properties recentf-list))
+         (root-dir (if (ffip-project-root) (file-truename (ffip-project-root)))))
+    (when (and n root-dir)
+      (setq files (delq nil (mapcar (lambda (f) (path-in-directory-p f root-dir)) files))))
+    (ivy-read "Recentf: "
+              files
+              :initial-input (if (region-active-p) (my-selected-str))
+              :action (lambda (f)
+                        (with-ivy-window
+                          (find-file f)))
+              :caller 'counsel-recentf)))
 
 (defmacro counsel-git-grep-or-find-api (fn git-cmd hint no-keyword)
   "Apply FN on the output lines of GIT-CMD.  HINT is hint when user input.
@@ -186,16 +192,21 @@ Or else, find files since 24 weeks (6 months) ago."
                           (kill-new val)
                           (message "%s => kill-ring" val)))))
 
-(defun counsel-goto-recent-directory ()
-  "Goto recent directories."
-  (interactive)
+(defun counsel-recent-directory (&optional n)
+  "Goto recent directories.
+If N is not nil, only list directories in current project."
+  (interactive "P")
   (unless recentf-mode (recentf-mode 1))
-  (let* ((collection (delete-dups
-                      (append (mapcar 'file-name-directory recentf-list)
+  (let* ((cands (delete-dups
+                      (append my-dired-directory-history
+                              (mapcar 'file-name-directory recentf-list)
                               ;; fasd history
                               (if (executable-find "fasd")
-                                  (split-string (shell-command-to-string "fasd -ld") "\n" t))))))
-    (ivy-read "directories:" collection :action 'dired)))
+                                  (nonempty-lines (shell-command-to-string "fasd -ld"))))))
+         (root-dir (if (ffip-project-root) (file-truename (ffip-project-root)))))
+    (when (and n root-dir)
+      (setq cands (delq nil (mapcar (lambda (f) (path-in-directory-p f root-dir)) cands))))
+    (ivy-read "directories:" cands :action 'dired)))
 
 (defun ivy-occur-grep-mode-hook-setup ()
   ;; no syntax highlight, I only care performance when searching/replacing
@@ -204,6 +215,7 @@ Or else, find files since 24 weeks (6 months) ago."
   (column-number-mode -1)
   ;; turn on wgrep right now
   ;; (ivy-wgrep-change-to-wgrep-mode) ; doesn't work, don't know why
+  (local-set-key (kbd "RET") #'ivy-occur-press-and-switch)
   )
 (add-hook 'ivy-occur-grep-mode-hook 'ivy-occur-grep-mode-hook-setup)
 
@@ -250,7 +262,8 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
 ;; {{ swiper&ivy-mode
 (defun swiper-the-thing ()
   (interactive)
-  (swiper (my-use-selected-string-or-ask "")))
+  ;; better performance on large files than swiper
+  (counsel-grep-or-swiper (my-use-selected-string-or-ask "")))
 
 (global-set-key (kbd "C-s") 'swiper)
 ;; }}
@@ -259,6 +272,68 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
 (global-set-key (kbd "C-h f") 'counsel-describe-function)
 
 ;; better performance on everything (especially windows), ivy-0.10.0 required
-(setq ivy-dynamic-exhibit-delay-ms 200)
+;; @see https://github.com/abo-abo/swiper/issues/1218
+(setq ivy-dynamic-exhibit-delay-ms 250)
+
+;; Press C-p and Enter to select current input as candidate
+;; https://oremacs.com/2017/11/30/ivy-0.10.0/
+(setq ivy-use-selectable-prompt t)
+
+;; {{ input ":" at first to start pinyin search in any ivy-related packages
+(defvar ivy-pinyin-search-trigger-key ":")
+;; @see https://emacs-china.org/t/topic/2432/3
+(defun my-pinyinlib-build-regexp-string (str)
+  (cond
+   ((string= str ".*")
+    ".*")
+   (t
+    (pinyinlib-build-regexp-string str t))))
+
+(defun my-pinyin-regexp-helper (str)
+  (cond
+   ((string= str " ")
+    ".*")
+   ((string= str "")
+    nil)
+   (;; t
+    str)))
+
+(defun pinyin-to-utf8 (str)
+  (when (and (> (length str) 0)
+             (string= (substring str 0 1) ":"))
+    (let* ((collection (split-string (replace-regexp-in-string ivy-pinyin-search-trigger-key
+                                                               ""
+                                                               str) "")))
+      (unless (featurep 'pinyinlib) (require 'pinyinlib))
+      (mapconcat 'my-pinyinlib-build-regexp-string
+                 (delq nil (mapcar 'my-pinyin-regexp-helper
+                                   collection))
+                 ""))))
+
+(defun re-builder-pinyin (str)
+  (or (pinyin-to-utf8 str)
+      (ivy--regex-plus str)))
+
+(setq ivy-re-builders-alist
+      '((t . re-builder-pinyin)))
+;; }}
+
+;; @see https://oremacs.com/2015/07/23/ivy-multiaction/
+;; press "M-o" to choose ivy action
+(ivy-set-actions
+ 'counsel-find-file
+ '(("j" find-file-other-frame "other frame")
+   ("b" counsel-find-file-cd-bookmark-action "cd bookmark")
+   ("x" counsel-find-file-extern "open externally")
+   ("d" delete-file "delete")
+   ("r" counsel-find-file-as-root "open as root")))
+
+;; set actions when running C-x b
+;; replace "frame" with window to open in new window
+(ivy-set-actions
+ 'ivy-switch-buffer-by-pinyin
+ '(("j" switch-to-buffer-other-frame "other frame")
+   ("k" kill-buffer "kill")
+   ("r" ivy--rename-buffer-action "rename")))
 
 (provide 'init-ivy)

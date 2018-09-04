@@ -418,15 +418,14 @@ Does not indent buffer, because it is used for a before-save-hook, and that
 might be bad."
   (interactive)
   (untabify (point-min) (point-max))
-  (delete-trailing-whitespace)
-  (set-buffer-file-coding-system 'utf-8))
+  (delete-trailing-whitespace))
 
 (defun cleanup-buffer ()
   "Perform a bunch of operations on the whitespace content of a buffer.
 Including indent-buffer, which should not be called automatically on save."
   (interactive)
   (cleanup-buffer-safe)
-  (indent-buffer))
+  (indent-region (point-min) (point-max)))
 
 ;; {{ save history
 ;; On Corp machines, I don't have permission to access history,
@@ -438,11 +437,23 @@ Including indent-buffer, which should not be called automatically on save."
    (savehist-mode 1)))
 ;; }}
 
-;; {{emms
-(require 'emms-setup)
-(emms-all)
-(emms-default-players)
+;; {{ easygpg setup
+;; @see http://www.emacswiki.org/emacs/EasyPG#toc4
+(defadvice epg--start (around advice-epg-disable-agent disable)
+  "Make epg--start not able to find a gpg-agent"
+  (let ((agent (getenv "GPG_AGENT_INFO")))
+    (setenv "GPG_AGENT_INFO" nil)
+    ad-do-it
+    (setenv "GPG_AGENT_INFO" agent)))
+
+(unless (string-match-p "^gpg (GnuPG) 1.4"
+                        (shell-command-to-string (format "%s --version" epg-gpg-program)))
+
+  ;; `apt-get install pinentry-tty` if using emacs-nox
+  ;; Create `~/.gnupg/gpg-agent.conf' container one line `pinentry-program /usr/bin/pinentry-curses`
+  (setq epa-pinentry-mode 'loopback))
 ;; }}
+
 (provide 'init-misc-lazy)
 ;;; init-misc-lazy.el ends here
 
