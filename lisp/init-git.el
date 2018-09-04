@@ -1,16 +1,18 @@
-;; Solution 1: disable all vc backends
+;; ;; {{ Solution 1: disable all vc backends
 ;; @see http://stackoverflow.com/questions/5748814/how-does-one-disable-vc-git-in-emacs
 ;; (setq vc-handled-backends ())
+;; }}
 
-;; ;; Solution 2: if NO network mounted drive involved
+
+;; {{ Solution 2: if NO network mounted drive involved
 (setq vc-handled-backends '(Git SVN Hg))
-
 ;; @see https://www.reddit.com/r/emacs/comments/4c0mi3/the_biggest_performance_improvement_to_emacs_ive/
 ;; open files faster but you can't check if file is version
 ;; controlled. other vcs functionality still works.
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
+;; }}
 
-;; ;; Solution 3: setup vc-handled-backends per project
+;; ;; {{ Solution 3: setup vc-handled-backends per project
 ;; (setq vc-handled-backends ())
 ;; (defun my-setup-develop-environment ()
 ;;   (interactive)
@@ -27,16 +29,17 @@
 ;; (add-hook 'web-mode-hook 'my-setup-develop-environment)
 ;; (add-hook 'c++-mode-hook 'my-setup-develop-environment)
 ;; (add-hook 'c-mode-hook 'my-setup-develop-environment)
+;; ;; }}
 
 ;; {{ git-gutter
-(require 'git-gutter)
+(local-require 'git-gutter)
 
 (defun git-gutter-reset-to-head-parent()
   (interactive)
   (let (parent (filename (buffer-file-name)))
     (if (eq git-gutter:vcs-type 'svn)
         (setq parent "PREV")
-      (setq parent (if filename (concat (shell-command-to-string (concat "git --no-pager log --oneline -n1 --pretty='format:%H' " filename)) "^") "HEAD^")))
+      (setq parent (if filename (concat (shell-command-to-string (concat "git --no-pager log --oneline -n1 --pretty=\"format:%H\" " filename)) "^") "HEAD^")))
     (git-gutter:set-start-revision parent)
     (message "git-gutter:set-start-revision HEAD^")))
 
@@ -53,7 +56,10 @@
 ;; people are forced use subversion or hg, so they take priority
 (custom-set-variables '(git-gutter:handled-backends '(svn hg git)))
 
-(git-gutter:linum-setup)
+(unless (fboundp 'global-display-line-numbers-mode)
+ ;; git-gutter's workaround for linum-mode bug.
+ ;; should not be used in `display-line-number-mode`
+ (git-gutter:linum-setup))
 
 (global-set-key (kbd "C-x C-g") 'git-gutter:toggle)
 (global-set-key (kbd "C-x v =") 'git-gutter:popup-hunk)
@@ -101,7 +107,7 @@
 (defvar git-svn--available-commands nil "Cached list of git svn subcommands")
 
 (defun git-svn (dir)
-  "Run git svn"
+  "Run git svn."
   (interactive "DSelect directory: ")
   (unless git-svn--available-commands
     (setq git-svn--available-commands
@@ -109,7 +115,7 @@
   (let* ((default-directory (vc-git-root dir))
          (compilation-buffer-name-function (lambda (major-mode-name) "*git-svn*")))
     (compile (concat "git svn "
-                     (ido-completing-read "git-svn command: " git-svn--available-commands nil t)))))
+                     (completing-read "git-svn command: " git-svn--available-commands nil t)))))
 
 (defun git-get-current-file-relative-path ()
   (replace-regexp-in-string (concat "^" (file-name-as-directory default-directory))
@@ -196,5 +202,35 @@
 
 ;; }}
 
-(provide 'init-git)
+(defun my-git-log-trace-definition ()
+  "Similar to `magit-log-trace-definition' but UI is simpler.
+If multi-lines are selected, trace the defintion of line range.
+If only one line is selected, use current selection as function name to look up.
+If nothing is selected, use the word under cursor as function name to look up."
+  (interactive)
+  (when buffer-file-name
+    (let* ((range-or-func (cond
+                           ((region-active-p)
+                            (cond
+                             ((my-is-one-line (region-beginning) (region-end))
+                              (format ":%s" (my-selected-str)))
+                             (t
+                              (format "%s,%s"
+                                      (line-number-at-pos (region-beginning))
+                                      (line-number-at-pos (region-end))))))
+                           (t
+                            (format ":%s" (thing-at-point 'symbol)))))
+           (cmd (format "git log -L%s:%s" range-or-func (file-truename buffer-file-name)))
+           (content (shell-command-to-string cmd)))
+      (when (string-match-p "no match" content)
+        ;; mark current function and try again
+        (mark-defun)
+        (setq range-or-func (format "%s,%s"
+                                    (line-number-at-pos (region-beginning))
+                                    (line-number-at-pos (region-end))))
+        (setq cmd (format "git log -L%s:%s" range-or-func (file-truename buffer-file-name))))
+      (message cmd)
+      (require 'find-file-in-project)
+      (ffip-show-content-in-diff-mode (shell-command-to-string cmd)))))
 
+(provide 'init-git)

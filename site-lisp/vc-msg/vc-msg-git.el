@@ -8,7 +8,7 @@
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This program is distributed in the hope that it will be useful,
@@ -45,7 +45,8 @@
 Note git option `-C' track text copied elsewhere,
 `-M' tracked moved content inside file.
 See https://www.kernel.org/pub/software/scm/git/docs/git-blame.html"
-  (format "blame -C -M -w -L %d,+1 --porcelain %s" line-num file))
+  ;; @see https://stackoverflow.com/questions/15769298/git-blame-correct-author-after-merge
+  (format "blame -C -M -w -L %d,+1 --porcelain %s --no-merges" line-num file))
 
 ;;;###autoload
 (defun vc-msg-git-execute (file line-num)
