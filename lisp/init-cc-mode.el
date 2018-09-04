@@ -6,9 +6,7 @@
       (c-lineup-topmost-intro-cont langelem))))
 
 ;; avoid default "gnu" style, use more popular one
-(setq c-default-style '((java-mode . "java")
-                        (awk-mode . "awk")
-                        (other . "linux")))
+(setq c-default-style "linux")
 
 (defun fix-c-indent-offset-according-to-syntax-context (key val)
   ;; remove the old element
@@ -49,8 +47,6 @@
 
   ;; wxWidgets setup
   (c-set-offset 'topmost-intro-cont 'c-wx-lineup-topmost-intro-cont)
-
-  (add-to-list 'imenu-generic-expression '(nil "^DEFUN *(\"\\([a-zA-Z0-9-]+\\)" 1))
 
   ;; make a #define be left-aligned
   (setq c-electric-pound-behavior (quote (alignleft)))

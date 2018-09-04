@@ -127,9 +127,7 @@
        (*is-a-mac* ; mac
         "open")
        (*unix* ; linux or unix
-        ;; prefer Chrome than Firefox
-        (or (executable-find "google-chrome")
-            (executable-find "firefox")))
+        (executable-find "firefox"))
        (t
         ;; Windows: you need add "firefox.exe" to environment variable PATH
         ;; @see https://en.wikipedia.org/wiki/PATH_(variable)

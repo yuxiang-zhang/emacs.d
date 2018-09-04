@@ -1,19 +1,12 @@
 ;; {{ shell and conf
 (add-to-list 'auto-mode-alist '("\\.[^b][^a][a-zA-Z]*rc$" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.aspell\\.en\\.pws\\'" . conf-mode))
-(add-to-list 'auto-mode-alist '("\\mimeapps\\.list$" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.editorconfig$" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.meta\\'" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.?muttrc\\'" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.mailcap\\'" . conf-mode))
 ;; }}
 
-;; Avoid potential lag:
-;; https://emacs.stackexchange.com/questions/28736/emacs-pointcursor-movement-lag/28746
-;; `next-line' triggers the `format-mode-line' which triggers `projectile-project-name'
-;; I use find-file-in-project instead of projectile. So I don't have this issue at all.
-;; Set `auto-window-vscroll' to nil to avoid triggering `format-mode-line'.
-(setq auto-window-vscroll nil)
 
 (add-to-list 'auto-mode-alist '("TAGS\\'" . text-mode))
 (add-to-list 'auto-mode-alist '("\\.ctags\\'" . text-mode))
@@ -81,8 +74,8 @@
 (defun my-git-versions ()
   (let* ((git-cmd (concat "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an' "
                           buffer-file-name)))
-    (nconc (nonempty-lines (shell-command-to-string "git branch --no-color --all"))
-           (nonempty-lines (shell-command-to-string git-cmd)))))
+    (nconc (split-string (shell-command-to-string "git branch --no-color --all") "\n" t)
+           (split-string (shell-command-to-string git-cmd) "\n" t))))
 
 
 (setq ffip-match-path-instead-of-filename t)
@@ -105,7 +98,7 @@
 ;; }}
 
 ;; {{ https://github.com/browse-kill-ring/browse-kill-ring
-(local-require 'browse-kill-ring)
+(require 'browse-kill-ring)
 ;; no duplicates
 (setq browse-kill-ring-display-style 'one-line
       browse-kill-ring-display-duplicates nil
@@ -178,7 +171,7 @@
 (add-hook 'comint-output-filter-functions 'comint-watch-for-password-prompt)
 
 ;; {{ which-key-mode
-(local-require 'which-key)
+(require 'which-key)
 (setq which-key-allow-imprecise-window-fit t) ; performance
 (setq which-key-separator ":")
 (which-key-mode 1)
@@ -217,11 +210,8 @@
       (message "NO COMPILATION ERRORS!"))))
 
 (defun generic-prog-mode-hook-setup ()
-  (when (buffer-too-big-p)
-    ;; Turn off `linum-mode' when there are more than 5000 lines
-    (linum-mode -1)
-    (when (should-use-minimum-resource)
-      (font-lock-mode -1)))
+  ;; turn off `linum-mode' when there are more than 5000 lines
+  (if (buffer-too-big-p) (linum-mode -1))
 
   (unless (is-buffer-file-temp)
 
@@ -321,7 +311,7 @@ See \"Reusing passwords for several connections\" from INFO.
     (find-alternate-file (concat "/sudo:@127.0.0.1:"
                                  buffer-file-name))))
 
-(defadvice counsel-find-file (after find-file-sudo activate)
+(defadvice ido-find-file (after find-file-sudo activate)
   "Find file as root if necessary."
   (if (and (not (and buffer-file-name
                      (file-writable-p buffer-file-name)))
@@ -382,7 +372,7 @@ See \"Reusing passwords for several connections\" from INFO.
 ;; {{ show email sent by `git send-email' in gnus
 (eval-after-load 'gnus
   '(progn
-     (local-require 'gnus-article-treat-patch)
+     (require 'gnus-article-treat-patch)
      (setq gnus-article-patch-conditions
            '( "^@@ -[0-9]+,[0-9]+ \\+[0-9]+,[0-9]+ @@" ))
      ))
@@ -402,8 +392,11 @@ See \"Reusing passwords for several connections\" from INFO.
   (interactive)
   (let ((dir (expand-file-name default-directory)))
     (if (not (memq dir load-path))
-        (add-to-list 'load-path dir))
-    (message "Directory added into load-path:%s" dir)))
+        (add-to-list 'load-path dir)
+      )
+    (message "Directory added into load-path:%s" dir)
+    )
+  )
 
 (setq system-time-locale "C")
 
@@ -462,16 +455,14 @@ See \"Reusing passwords for several connections\" from INFO.
 ;; {{ music
 (defun mpc-which-song ()
   (interactive)
-  (let ((msg (car (nonempty-lines (shell-command-to-string "mpc")))))
+  (let ((msg (car (split-string (shell-command-to-string "mpc") "\n+"))))
     (message msg)
     (copy-yank-str msg)))
 
 (defun mpc-next-prev-song (&optional prev)
   (interactive)
-  (message (car (nonempty-lines (shell-command-to-string
-                                 (concat "mpc "
-                                         (if prev "prev" "next")))))))
-
+  (message (car (split-string (shell-command-to-string
+                               (concat "mpc " (if prev "prev" "next"))) "\n+"))))
 (defun lyrics()
   "Prints the lyrics for the current song"
   (interactive)
@@ -483,12 +474,22 @@ See \"Reusing passwords for several connections\" from INFO.
       (goto-line 0))))
 ;; }}
 
+;; @see http://www.emacswiki.org/emacs/EasyPG#toc4
+(defadvice epg--start (around advice-epg-disable-agent disable)
+  "Make epg--start not able to find a gpg-agent"
+  (let ((agent (getenv "GPG_AGENT_INFO")))
+    (setenv "GPG_AGENT_INFO" nil)
+    ad-do-it
+    (setenv "GPG_AGENT_INFO" agent)))
+
+(setq epa-pinentry-mode 'loopback)
+
 ;; https://github.com/abo-abo/ace-window
 ;; `M-x ace-window ENTER m` to swap window
 (global-set-key (kbd "C-x o") 'ace-window)
 
 ;; {{ move focus between sub-windows
-(local-require 'window-numbering)
+(require 'window-numbering)
 (custom-set-faces '(window-numbering-face ((t (:foreground "DeepPink" :underline "DeepPink" :weight bold)))))
 (window-numbering-mode 1)
 ;; }}
@@ -660,12 +661,14 @@ If no region is selected. You will be asked to use `kill-ring' or clipboard inst
         (write-region (car tmp) (cadr tmp) fb))
        (t
         ;; text from `kill-ring' or clipboard
-        (let* ((choice (completing-read "Since no region selected, compare text in:"
+        (unless (featurep 'ido) (require 'ido))
+        (let* ((choice (ido-completing-read "Since no region selected, compare text in:"
                                             '("kill-ring" "clipboard")))
                (txt (cond
                      ((string= choice "kill-ring")
                       (car kill-ring))
                      ((string= choice "clipboard")
+                      (unless (featurep 'simpleclip) (require 'simpleclip))
                       (my-gclip)))))
           (with-temp-file fb
             (insert txt)))))
@@ -729,8 +732,7 @@ If no region is selected. You will be asked to use `kill-ring' or clipboard inst
   (message "indent-tabs-mode=%s" indent-tabs-mode))
 
 ;; {{ auto-save.el
-(local-require 'auto-save)
-(add-to-list 'auto-save-exclude 'file-too-big-p t)
+(require 'auto-save)
 (auto-save-enable)
 (setq auto-save-slient t)
 ;; }}
@@ -759,7 +761,7 @@ If no region is selected. You will be asked to use `kill-ring' or clipboard inst
   (let* ((str (if (region-active-p) (my-selected-str)
                 (my-buffer-str)))
          (total-hours 0)
-         (lines (nonempty-lines str)))
+         (lines (split-string str "\n")))
     (dolist (l lines)
       (if (string-match " \\([0-9][0-9.]*\\)h[ \t]*$" l)
           (setq total-hours (+ total-hours (string-to-number (match-string 1 l))))))
@@ -876,7 +878,7 @@ If no region is selected. You will be asked to use `kill-ring' or clipboard inst
 ;; }}
 
 ;; {{
-(local-require 'typewriter-mode)
+(require 'typewriter-mode)
 (defun toggle-typewriter ()
   "Turn on/off typewriter."
   (interactive)
@@ -917,91 +919,6 @@ If no region is selected. You will be asked to use `kill-ring' or clipboard inst
        (add-to-list 'grep-find-ignored-files v))))
 ;; }}
 
-;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el"
-(setq session-save-file (expand-file-name "~/.emacs.d/.session"))
-(add-hook 'after-init-hook 'session-initialize)
-;; }}
+(add-hook 'lispy-mode-hook #'lispyville-mode)
 
-;; {{
-(add-to-list 'auto-mode-alist '("\\.adoc\\'" . adoc-mode))
-(defun adoc-imenu-index ()
-  (let* ((patterns '((nil "^=\\([= ]*[^=\n\r]+\\)" 1))))
-    (save-excursion
-      (imenu--generic-function patterns))))
-
-(defun adoc-mode-hook-setup ()
-  ;; don't wrap lines because there is table in `adoc-mode'
-  (setq truncate-lines t)
-  (setq imenu-create-index-function 'adoc-imenu-index))
-(add-hook 'adoc-mode-hook 'adoc-mode-hook-setup)
-;; }}
-
-(eval-after-load 'compile
-  '(progn
-     (add-to-list 'compilation-error-regexp-alist-alist
-                  (list 'mocha "at [^()]+ (\\([^:]+\\):\\([^:]+\\):\\([^:]+\\))" 1 2 3))
-     (add-to-list 'compilation-error-regexp-alist 'mocha)))
-
-;; ;; useless and hard to debug
-;; (defun optimize-emacs-startup ()
-;;   "Speedup emacs startup by compiling."
-;;   (interactive)
-;;   (let* ((dir (file-truename "~/.emacs.d/lisp/"))
-;;          (files (directory-files dir)))
-;;     (load (file-truename "~/.emacs.d/init.el"))
-;;     (dolist (f files)
-;;       (when (string-match-p ".*\.el$" f)
-;;         (let* ((default-directory dir))
-;;           (byte-compile-file (file-truename f) t))))))
-
-;; random color theme
-(defun random-color-theme ()
-  "Random color theme."
-  (interactive)
-  (unless (featurep 'counsel) (require 'counsel))
-  (let* ((available-themes (mapcar 'symbol-name (custom-available-themes)))
-         (theme (nth (random (length available-themes)) available-themes)))
-    (counsel-load-theme-action theme)
-    (message "Color theme [%s] loaded." theme)))
-
-(defun switch-to-ansi-term ()
-  (interactive)
-  (let* ((buf-name (if *win64* "*shell*" "*ansi-term"))
-         (buf (get-buffer buf-name))
-         (wins (window-list))
-         current-frame-p)
-    (cond
-     ((buffer-live-p buf)
-      (dolist (win wins)
-        (when (string= (buffer-name (window-buffer win)) buf-name)
-          (when (window-live-p win)
-            (setq current-frame-p t)
-            (select-window win))))
-      (unless current-frame-p
-          (switch-to-buffer buf)))
-     (*win64*
-        (shell))
-     (t
-      (ansi-term my-term-program)))))
-
-(defun switch-to-shell-or-ansi-term ()
-  (interactive)
-  (if (display-graphic-p) (switch-to-ansi-term)
-    (suspend-frame)))
-
-;; {{emms
-(require 'emms-setup)
-(emms-all)
-(setq emms-player-list '(emms-player-mplayer-playlist
-                         emms-player-mplayer
-                         emms-player-mpg321
-                         emms-player-ogg123
-                         lemms-player-vlc
-                         emms-player-vlc-playlist))
-;; }}
-
-;; @see https://www.reddit.com/r/emacs/comments/988paa/emacs_on_windows_seems_lagging/
-(unless *no-memory*
-  ;; speed up font rendering for special characters
-  (setq inhibit-compacting-font-caches t))
 (provide 'init-misc)

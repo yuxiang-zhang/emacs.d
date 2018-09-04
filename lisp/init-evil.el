@@ -275,6 +275,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (evil-declare-key 'normal org-mode-map
   "gh" 'outline-up-heading
   "gl" 'outline-next-visible-heading
+  "gj" 'outline-forward-same-level
+  "gk" 'outline-backward-same-level
   "$" 'org-end-of-line ; smarter behaviour on headlines etc.
   "^" 'org-beginning-of-line ; ditto
   "<" (lambda () (interactive) (org-demote-or-promote 1)) ; out-dent
@@ -284,6 +286,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (evil-declare-key 'normal markdown-mode-map
   "gh" 'outline-up-heading
   "gl" 'outline-next-visible-heading
+  "gj" 'outline-forward-same-level
+  "gk" 'outline-backward-same-level
   (kbd "TAB") 'org-cycle)
 
 ;; {{ specify major mode uses Evil (vim) NORMAL state or EMACS original state.
@@ -323,8 +327,9 @@ If the character before and after CH is space or tab, CH is NOT slash"
         (compilation-mode . emacs)
         (speedbar-mode . emacs)
         (ivy-occur-mode . emacs)
-        (ivy-occur-grep-mode . normal)
         (messages-buffer-mode . normal)
+        (magit-commit-mode . normal)
+        (magit-diff-mode . normal)
         (browse-kill-ring-mode . normal)
         (js2-error-buffer-mode . emacs)
         )
@@ -345,17 +350,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (define-key evil-visual-state-map (kbd "C-]") 'counsel-etags-find-tag-at-point)
 (define-key evil-insert-state-map (kbd "C-x C-n") 'evil-complete-next-line)
 (define-key evil-insert-state-map (kbd "C-x C-p") 'evil-complete-previous-line)
-(define-key evil-insert-state-map (kbd "C-]") 'aya-expand)
-
-(defun my-search-defun-from-pos (pos)
-  (evil-search search t t pos)
-  ;; ignore this.f1 = this.fn.bind(this) code
-  (when (and (memq major-mode '(js-mode js2-mode rjsx-mode))
-             (string-match-p "^[ \t]*this\.[a-zA-Z0-9]+[ \t]*=[ \t]*this\.[a-zA-Z0-9]*\.bind(this);"
-                             (my-line-str)))
-
-    (forward-line 1)
-    (evil-search search t t (point))))
 
 ;; the original "gd" or `evil-goto-definition' now try `imenu', `xref', search string to `point-min'
 ;; xref part is annoying because I already use `counsel-etags' to search tag.
@@ -376,10 +370,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
       (setq isearch-forward t)
       ;; if imenu is available, try it
       (cond
-       ((and (derived-mode-p 'js2-mode)
-             (or (null (get-text-property (point) 'face))
-                 (font-belongs-to (point) '(rjsx-tag))))
-        (js2-jump-to-definition))
        ((fboundp 'imenu--make-index-alist)
         (condition-case nil
             (setq ientry (imenu--make-index-alist))
@@ -391,10 +381,12 @@ If the character before and after CH is space or tab, CH is NOT slash"
           (setq ipos (marker-position ipos)))
          ;; imenu found a position, so go there and
          ;; highlight the occurrence
-        (my-search-defun-from-pos (if (numberp ipos) ipos (point-min))))
+        (if (numberp ipos)
+            (evil-search search t t ipos)
+          (evil-search search t t (point-min))))
        ;; otherwise just go to first occurrence in buffer
        (t
-        (my-search-defun-from-pos (point-min)))))))
+        (evil-search search t t (point-min)))))))
 ;; use "gt", someone might prefer original `evil-goto-definition'
 (define-key evil-motion-state-map "gt" 'my-evil-goto-definition)
 
@@ -405,7 +397,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; then press "z" to contract, "x" to expand
 (eval-after-load "evil"
   '(progn
-     (define-key global-map (kbd "C-x C-z") 'switch-to-shell-or-ansi-term)
      (setq expand-region-contract-fast-key "z")))
 
 ;; I learn this trick from ReneFroger, need latest expand-region
@@ -420,7 +411,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; My frequently used commands are listed here
 ;; For example, for line like `"ef" 'end-of-defun`
 ;;   You can either press `,ef` or `M-x end-of-defun` to execute it
-(local-require 'general)
+(require 'general)
 (general-evil-setup t)
 
 ;; {{ use `,` as leader key
@@ -441,6 +432,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "aw" 'ace-swap-window
        "af" 'ace-maximize-window
        "ac" 'aya-create
+       "ae" 'aya-expand
        "zz" 'paste-from-x-clipboard ; used frequently
        "cy" 'strip-convert-lines-into-one-big-string
        "bs" '(lambda () (interactive) (goto-edge-by-comparing-font-face -1))
@@ -456,11 +448,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "fn" 'cp-filename-of-current-buffer
        "fp" 'cp-fullpath-of-current-buffer
        "dj" 'dired-jump ;; open the dired from current file
-       "xd" 'dired
-       "xo" 'ace-window
        "ff" 'toggle-full-window ;; I use WIN+F in i3
        "ip" 'find-file-in-project
-       "jj" 'find-file-in-project-at-point
        "kk" 'find-file-in-project-by-selected
        "kn" 'find-file-with-similar-name ; ffip v5.3.1
        "fd" 'find-directory-in-project-by-selected
@@ -473,10 +462,9 @@ If the character before and after CH is space or tab, CH is NOT slash"
        ;; "cl" 'evilnc-comment-or-uncomment-to-the-line
        ;; "cc" 'evilnc-copy-and-comment-lines
        ;; "cp" 'evilnc-comment-or-uncomment-paragraphs
-       "ic" 'my-imenu-comments
        "epy" 'emmet-expand-yas
        "epl" 'emmet-expand-line
-       "rv" 'evilmr-replace-in-defun
+       "rd" 'evilmr-replace-in-defun
        "rb" 'evilmr-replace-in-buffer
        "ts" 'evilmr-tag-selected-region ;; recommended
        "tua" 'artbollocks-mode
@@ -496,13 +484,12 @@ If the character before and after CH is space or tab, CH is NOT slash"
               (interactive)
               (let* ((ffip-diff-backends
                       '(("Show git commit" . (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
-                                                       (collection (nonempty-lines (shell-command-to-string git-cmd)))
+                                                       (collection (split-string (shell-command-to-string git-cmd) "\n" t))
                                                        (item (ffip-completing-read "git log:" collection)))
                                                   (when item
                                                     (shell-command-to-string (format "git show %s" (car (split-string item "|" t))))))))))
                 (ffip-show-diff 0)))
        "gd" 'ffip-show-diff-by-description ;find-file-in-project 5.3.0+
-       "gl" 'my-git-log-trace-definition ; find history of a function or range
        "sf" 'counsel-git-show-file
        "sh" 'my-select-from-search-text-history
        "df" 'counsel-git-diff-file
@@ -527,6 +514,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "tt" 'dumb-jump-go
        "tb" 'dumb-jump-back
        "tm" 'my-git-timemachine
+       "tdb" 'tidy-buffer
+       "tdl" 'tidy-current-line
        ;; toggle overview,  @see http://emacs.wordpress.com/2007/01/16/quick-and-dirty-code-folding/
        "ov" 'my-overview-of-current-buffer
        "or" 'open-readme-in-git-root-directory
@@ -539,26 +528,12 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "cxi" 'org-clock-in ; `C-c C-x C-i'
        "cxo" 'org-clock-out ; `C-c C-x C-o'
        "cxr" 'org-clock-report ; `C-c C-x C-r'
-       "qq" (lambda (n)
-              (interactive "P")
-              (cond
-               ((not n)
-                (counsel-etags-grep))
-               ((= n 1)
-                ;; grep references of current web component
-                (counsel-etags-grep (format "<%s" (file-name-base buffer-file-name))))
-               ((= n 2)
-                ;; grep web component attribute name
-                (counsel-etags-grep (format "^ *%s[=:]" (or (thing-at-point 'symbol)
-                                                            (read-string "Component attribute name?")))))
-               ((= n 3)
-                ;; grep current file name base
-                (counsel-etags-grep (format "%s" (file-name-nondirectory buffer-file-name))))))
+       "qq" 'counsel-etags-grep
        "dd" 'counsel-etags-grep-symbol-at-point
        "xc" 'save-buffers-kill-terminal
        "rr" 'my-counsel-recentf
        "rh" 'counsel-yank-bash-history ; bash history command => yank-ring
-       "rd" 'counsel-recent-directory
+       "rf" 'counsel-goto-recent-directory
        "da" 'diff-region-tag-selected-as-a
        "db" 'diff-region-compare-with-b
        "di" 'evilmi-delete-items
@@ -585,6 +560,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "sl" 'sort-lines
        "ulr" 'uniquify-all-lines-region
        "ulb" 'uniquify-all-lines-buffer
+       "lj" 'moz-load-js-file-and-send-it
+       "mr" 'moz-console-clear
        "fs" 'ffip-save-ivy-last
        "fr" 'ffip-ivy-resume
        "fc" 'cp-ffip-ivy-last
@@ -605,6 +582,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "fa" 'flyspell-auto-correct-word
        "pe" 'flymake-goto-prev-error
        "ne" 'flymake-goto-next-error
+       "fw" 'ispell-word
        "bc" '(lambda () (interactive) (wxhelp-browse-class-or-api (thing-at-point 'symbol)))
        "og" 'org-agenda
        "otl" 'org-toggle-link-display
@@ -633,12 +611,12 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "9" 'select-window-9
        "xm" 'my-M-x
        "xx" 'er/expand-region
-       "xf" 'counsel-find-file
+       "xf" 'ido-find-file
        "xb" 'ivy-switch-buffer-by-pinyin
        "xh" 'mark-whole-buffer
-       "xk" 'kill-buffer
+       "xk" 'ido-kill-buffer
        "xs" 'save-buffer
-       "xz" 'switch-to-shell-or-ansi-term
+       "xz" 'suspend-frame
        "vm" 'vc-rename-file-and-buffer
        "vc" 'vc-copy-file-and-rename-buffer
        "xvv" 'vc-next-action ; 'C-x v v' in original
@@ -667,34 +645,17 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; {{ Use `SPC` as leader key
 ;; all keywords arguments are still supported
 (nvmap :prefix "SPC"
-       "ee" 'my-swap-sexps
-       "pc" 'my-dired-redo-from-commands-history
-       "pw" 'pwd
-       "cc" 'my-dired-redo-last-command
        "ss" 'wg-create-workgroup ; save windows layout
        "se" 'evil-iedit-state/iedit-mode ; start iedit in emacs
        "sc" 'shell-command
        "ll" 'my-wg-switch-workgroup ; load windows layout
        "kk" 'scroll-other-window
        "jj" 'scroll-other-window-up
-       "rt" 'random-color-theme
        "yy" 'hydra-launcher/body
        "hh" 'multiple-cursors-hydra/body
        "gi" 'gist-region ; only workable on my computer
        "tt" 'my-toggle-indentation
-       "gg" 'magit-status
-       "gs" 'magit-show-commit
-       "gl" 'magit-log-all
-       "gff" 'magit-find-file ; loading file in specific version into buffer
-       "gdd" 'magit-diff-dwim
-       "gdc" 'magit-diff-staged
-       "gau" 'magit-stage-modified
-       "gcc" 'magit-commit-popup
-       "gca" 'magit-commit-amend
-       "gja" 'magit-commit-extend
-       "gtt" 'magit-stash
-       "gta" 'magit-stash-apply
-       "gv" 'git-gutter:set-start-revision
+       "gs" 'git-gutter:set-start-revision
        "gh" 'git-gutter-reset-to-head-parent
        "gr" 'git-gutter-reset-to-default
        "ps" 'profiler-start
@@ -790,7 +751,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "ga" 'w3m-java-search
        "gh" 'w3mext-hacker-search ; code search in all engines with firefox
        "gq" 'w3m-stackoverflow-search
-       "mw" 'mpc-which-song
+       "mm" 'mpc-which-song
        "mn" 'mpc-next-prev-song
        "mp" '(lambda () (interactive) (mpc-next-prev-song t)))
 ;; }}
@@ -833,18 +794,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
                 (set-face-background 'mode-line (car color))
                 (set-face-foreground 'mode-line (cdr color))))))
 
-;; {{ evil-nerd-commenter
 (require 'evil-nerd-commenter)
 (evilnc-default-hotkeys)
-
-(defun my-imenu-comments ()
-  "Imenu display comments."
-  (interactive)
-  (unless (featurep 'counsel) (require 'counsel))
-  (when (fboundp 'evilnc-imenu-create-index-function)
-    (let* ((imenu-create-index-function 'evilnc-imenu-create-index-function))
-      (counsel-imenu))))
-;; }}
 
 ;; {{ evil-exchange
 ;; press gx twice to exchange, gX to cancel
@@ -866,7 +817,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; fifteen = 15
 ;;
 ;; If the align separator is / you will be prompted for a regular expression instead of a plain character.
-(evil-lion-mode)
+(require 'evil-lion)
+(evil-lion-install)
 ;; }}
 
 ;; {{ @see https://github.com/syl20bnr/spacemacs/blob/master/doc/DOCUMENTATION.org#replacing-text-with-iedit
@@ -884,18 +836,4 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (evil-find-char-pinyin-mode 1)
 ;; }}
 
-;; {{ evil-args
-;; bind evil-args text objects
-(define-key evil-inner-text-objects-map "a" 'evil-inner-arg)
-(define-key evil-outer-text-objects-map "a" 'evil-outer-arg)
-
-;; bind evil-forward/backward-args
-(define-key evil-normal-state-map "L" 'evil-forward-arg)
-(define-key evil-normal-state-map "H" 'evil-backward-arg)
-(define-key evil-motion-state-map "L" 'evil-forward-arg)
-(define-key evil-motion-state-map "H" 'evil-backward-arg)
-
-;; bind evil-jump-out-args
-(define-key evil-normal-state-map "K" 'evil-jump-out-args)
-;; }}
 (provide 'init-evil)

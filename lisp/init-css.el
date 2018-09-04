@@ -14,8 +14,7 @@
 ;; flymake-css is obsolete
 (defun css-mode-hook-setup ()
   (unless (is-buffer-file-temp)
-    (counsel-css-imenu-setup)
-    (setq imenu-create-index-function 'counsel-css--imenu-create-index-function)))
+    (setq imenu-create-index-function 'my-css-imenu-make-index)))
 (add-hook 'css-mode-hook 'css-mode-hook-setup)
 
 ;; compile *.scss to *.css on the pot could break the project build

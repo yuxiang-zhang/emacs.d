@@ -1,4 +1,4 @@
-(local-require 'keyfreq)
+(require 'keyfreq)
 
 (defun turnon-keyfreq-mode ()
   (interactive)
