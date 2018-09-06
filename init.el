@@ -17,6 +17,7 @@
 (setq gc-cons-threshold most-positive-fixnum)
 
 (setq emacs-load-start-time (current-time))
+(add-to-list 'load-path (expand-file-name "~/.emacs.d/lisp"))
 
 ;; {{ emergency security fix
 ;; https://bugs.debian.org/766397
