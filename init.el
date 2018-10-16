@@ -17,7 +17,6 @@
 (setq gc-cons-threshold most-positive-fixnum)
 
 (setq emacs-load-start-time (current-time))
-(add-to-list 'load-path (expand-file-name "~/.emacs.d/lisp"))
 
 ;; {{ emergency security fix
 ;; https://bugs.debian.org/766397
@@ -64,6 +63,7 @@
   (if (string= "*Messages*" (buffer-name))
       (read-only-mode -1)))
 
+(add-to-list 'load-path (expand-file-name "~/.emacs.d/lisp"))
 ;; @see https://www.reddit.com/r/emacs/comments/3kqt6e/2_easy_little_known_steps_to_speed_up_emacs_start/
 ;; Normally file-name-handler-alist is set to
 ;; (("\\`/[^/]*\\'" . tramp-completion-file-name-handler)
@@ -116,7 +116,7 @@
   (require-init 'init-cc-mode)
   (require-init 'init-gud)
   (require-init 'init-linum-mode)
-  (require-init 'init-git) ;; git-gutter should be enabled after `display-line-numbers-mode' turned on
+  ;; (require-init 'init-git) ;; git-gutter should be enabled after `display-line-numbers-mode' turned on
   ;; (require-init 'init-gist)
   (require-init 'init-gtags)
   ;; init-evil dependent on init-clipboard
@@ -133,7 +133,7 @@
   (require-init 'init-term-mode)
   (require-init 'init-web-mode)
   (require-init 'init-company)
-  (require-init 'init-chinese) ;; cannot be idle-required
+  ;; (require-init 'init-chinese) ;; cannot be idle-required
   ;; need statistics of keyfreq asap
   (require-init 'init-keyfreq)
   (require-init 'init-httpd)
@@ -158,7 +158,6 @@
   (require-init 'init-hydra)
   (require-init 'init-shackle)
 
-  (add-to-list 'load-path (expand-file-name "~/.emacs.d/lisp"))
   ;; {{ idle require other stuff
   (local-require 'idle-require)
   (setq idle-require-idle-delay 2)
