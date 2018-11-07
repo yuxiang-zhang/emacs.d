@@ -287,7 +287,7 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
   ;; better performance on large files than swiper
   (counsel-grep-or-swiper (my-use-selected-string-or-ask "")))
 
-(global-set-key (kbd "C-s") 'swiper)
+;; (global-set-key (kbd "C-s") 'swiper)
 ;; }}
 
 (global-set-key (kbd "C-h v") 'counsel-describe-variable)

@@ -114,7 +114,7 @@
   (require-init 'init-yasnippet)
   ;; Use bookmark instead
   (require-init 'init-cc-mode)
-  (require-init 'init-gud)
+  ;; (require-init 'init-gud)
   (require-init 'init-linum-mode)
   ;; (require-init 'init-git) ;; git-gutter should be enabled after `display-line-numbers-mode' turned on
   ;; (require-init 'init-gist)
@@ -186,7 +186,7 @@
 
   ;; my personal setup, other major-mode specific setup need it.
   ;; It's dependent on init-site-lisp.el
-  (if (file-exists-p "~/.custom.el") (load-file "~/.custom.el")))
+  (if (file-exists-p "~/.emacs.d/.custom.el") (load-file "~/.emacs.d/.custom.el")))
 
 ;; @see https://www.reddit.com/r/emacs/comments/4q4ixw/how_to_forbid_emacs_to_touch_configuration_files/
 (setq custom-file (concat user-emacs-directory "custom-set-variables.el"))
