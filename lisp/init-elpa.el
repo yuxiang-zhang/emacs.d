@@ -1,16 +1,26 @@
-;; emacs24 require calling `package-initialize' explicitly
-(require 'package)
-(package-initialize)
+;; -*- coding: utf-8; lexical-binding: t; -*-
 
-;; List of VISIBLE packages from melpa-unstable (http://melpa.org)
-;; Feel free to add more packages!
+(defun initialize-package ()
+  (unless nil ;package--initialized
+    ;; optimization, no need to activate all the packages so early
+    (setq package-enable-at-startup nil)
+    (package-initialize)))
+
+(initialize-package)
+
+;; List of visible packages from melpa-unstable (http://melpa.org).
+;; Please add the package name into `melpa-include-packages`
+;; if it's not visible after  `list-packages'.
 (defvar melpa-include-packages
   '(ace-mc
     color-theme ; emacs24 need this package
     ace-window ; lastest stable is released on year 2014
+    artbollocks-mode
     auto-package-update
     bbdb
+    evil-textobj-syntax
     command-log-mode
+    vimrc-mode
     auto-yasnippet
     dumb-jump
     websocket ; to talk to the browser
@@ -47,6 +57,7 @@
     badger-theme
     distinguished-theme
     challenger-deep-theme
+    tao-theme
     wgrep
     robe
     slime
@@ -55,8 +66,6 @@
     ;; company ; I won't wait another 2 years for stable
     simple-httpd
     dsvn
-    move-text
-    string-edit ; looks magnars don't update stable tag frequently
     findr
     mwe-log-commands
     yaml-mode
@@ -96,26 +105,38 @@
 ;; I don't use any packages from GNU ELPA because I want to minimize
 ;; dependency on 3rd party web site.
 (setq package-archives
-      '(;; uncomment below line if you need use GNU ELPA
+      '(("localelpa" . "~/.emacs.d/localelpa/")
+        ;; uncomment below line if you need use GNU ELPA
         ;; ("gnu" . "https://elpa.gnu.org/packages/")
-        ("localelpa" . "~/.emacs.d/localelpa/")
+        ("melpa" . "https://melpa.org/packages/")
+        ("melpa-stable" . "https://stable.melpa.org/packages/")
 
-        ;; ;; {{ 163 repository:
+        ;; Use either 163 or tsinghua mirror repository when official melpa
+        ;; is too slow or shutdown.
+
+        ;; ;; {{ Option 1: 163 mirror repository:
+        ;; ;; ("gnu" . "https://mirrors.163.com/elpa/gnu/")
         ;; ("melpa" . "https://mirrors.163.com/elpa/melpa/")
         ;; ("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/")
         ;; ;; }}
 
-        ;; ;; {{ tsinghua repository (more stable than 163, recommended)
-        ;; ;;See https://mirror.tuna.tsinghua.edu.cn/help/elpa/ on usage:
+        ;; ;; {{ Option 2: tsinghua mirror repository
+        ;; ;; @see https://mirror.tuna.tsinghua.edu.cn/help/elpa/ on usage:
         ;; ;; ("gnu"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
         ;; ("melpa" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
         ;; ("melpa-stable" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/")
-        ;; ;; ("org" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/org/")
         ;; }}
-
-        ("melpa" . "http://melpa.org/packages/")
-        ("melpa-stable" . "http://stable.melpa.org/packages/")
         ))
+
+(defvar my-ask-elpa-mirror t)
+(when (and my-ask-elpa-mirror
+           (not (file-exists-p (file-truename "~/.emacs.d/elpa")))
+           (yes-or-no-p "Switch to faster package repositories in China temporarily?
+You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use this ELPA mirror."))
+  (setq package-archives
+        '(("localelpa" . "~/.emacs.d/localelpa/")
+          ("melpa" . "https://mirrors.163.com/elpa/melpa/")
+          ("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/"))))
 
 ;; Un-comment below line if you follow "Install stable version in easiest way"
 ;; (setq package-archives '(("localelpa" . "~/.emacs.d/localelpa/") ("myelpa" . "~/projs/myelpa/")))
@@ -128,7 +149,7 @@
 (defadvice package-generate-autoloads (after close-autoloads (name pkg-dir) activate)
   "Stop package.el from leaving open autoload files lying around."
   (let* ((path (expand-file-name (concat
-                                  ;; name is string when emacs <= 24.3.1,
+                                  ;; name is string in emacs 24.3.1,
                                   (if (symbolp name) (symbol-name name) name)
                                   "-autoloads.el") pkg-dir)))
     (with-current-buffer (find-file-existing path)
@@ -182,7 +203,6 @@
 ;;------------------------------------------------------------------------------
 
 (require-package 'async)
-(require-package 'dash) ; required by string-edit
 ; color-theme 6.6.1 in elpa is buggy
 (require-package 'auto-compile)
 (require-package 'smex)
@@ -234,9 +254,7 @@
 (require-package 'counsel-bbdb)
 (require-package 'ibuffer-vc)
 (require-package 'less-css-mode)
-(require-package 'move-text)
 (require-package 'command-log-mode)
-(require-package 'page-break-lines)
 (require-package 'regex-tool)
 (require-package 'groovy-mode)
 (require-package 'ruby-compilation)
@@ -259,6 +277,7 @@
 (require-package 'multi-term)
 (require-package 'js-doc)
 (require-package 'js2-mode)
+(require-package 'js2-refactor)
 (require-package 'rjsx-mode)
 (require-package 's)
 ;; js2-refactor requires js2, dash, s, multiple-cursors, yasnippet
@@ -303,6 +322,7 @@
 (require-package 'evil-visualstar)
 (require-package 'evil-lion)
 (require-package 'evil-args)
+(require-package 'evil-textobj-syntax)
 (require-package 'slime)
 (require-package 'counsel-css)
 (require-package 'auto-package-update)
@@ -311,12 +331,16 @@
 (require-package 'magit) ; Magit 2.12 is the last feature release to support Emacs 24.4.
 (require-package 'shackle)
 (require-package 'toc-org)
-
+(require-package 'artbollocks-mode)
+(require-package 'elpa-mirror)
 ;; {{ @see https://pawelbx.github.io/emacs-theme-gallery/
-(when *emacs24*
-  (require-package 'color-theme)
-  ;; emms v5.0 need seq
-  (require-package 'seq))
+(require-package 'color-theme)
+;; emms v5.0 need seq
+(require-package 'seq)
+(require-package 'stripe-buffer)
+(require-package 'visual-regexp) ;; Press "M-x vr-*"
+(require-package 'vimrc-mode)
+
 (when *emacs25*
   (require-package 'zenburn-theme)
   (require-package 'color-theme-sanityinc-solarized)
@@ -346,7 +370,8 @@
   (require-package 'hemisu-theme)
   (require-package 'badger-theme)
   (require-package 'distinguished-theme)
-  (require-package 'challenger-deep-theme))
+  (require-package 'challenger-deep-theme)
+  (require-package 'tao-theme))
 ;; }}
 
 ;; kill buffer without my confirmation
