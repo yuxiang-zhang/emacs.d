@@ -15,12 +15,12 @@
   '(ace-mc
     color-theme ; emacs24 need this package
     ace-window ; lastest stable is released on year 2014
-    artbollocks-mode
     auto-package-update
     bbdb
     evil-textobj-syntax
     command-log-mode
     vimrc-mode
+    rjsx-mode ; fixed the indent issue in jsx
     auto-yasnippet
     dumb-jump
     websocket ; to talk to the browser
@@ -244,7 +244,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'dsvn)
 (require-package 'git-timemachine)
 (require-package 'exec-path-from-shell)
-(require-package 'flymake-css)
 (require-package 'flymake-jslint)
 (require-package 'flymake-ruby)
 (require-package 'ivy)
@@ -259,6 +258,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'groovy-mode)
 (require-package 'ruby-compilation)
 (require-package 'emmet-mode)
+(require-package 'winum)
 (require-package 'session)
 (require-package 'unfill)
 (require-package 'w3m)
@@ -331,7 +331,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'magit) ; Magit 2.12 is the last feature release to support Emacs 24.4.
 (require-package 'shackle)
 (require-package 'toc-org)
-(require-package 'artbollocks-mode)
 (require-package 'elpa-mirror)
 ;; {{ @see https://pawelbx.github.io/emacs-theme-gallery/
 (require-package 'color-theme)
