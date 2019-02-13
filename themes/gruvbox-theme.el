@@ -1,18 +1,18 @@
-;;; gruvbox-theme.el --- A retro-groove colour theme for Emacs
+;;; gruvbox-theme.el --- A retro-groove colour theme for Emacs -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2013 Lee Machin
-;; Copyright (c) 2013-2016 Greduan
+;; Copyright (c) 2013-2016 Eduardo Lavaque
 ;; Copyright (c) 2016-2017 Jason Milkins
-;; Copyright (c) 2017 Martijn Terpstra
+;; Copyright (c) 2017-2018 Martijn Terpstra
 
 ;; Author: Jason Milkins <jasonm23@gmail.com>
 ;; (current maintainer)
 ;;
 ;; Author-list: Lee Machin <ljmachin@gmail.com>,
-;;              Greduan <me@greduan.com>
+;;              Eduardo Lavaque <me@greduan.com>
 ;;
-;; URL: http://github.com/Greduan/emacs-theme-gruvbox
-;; Version: 1.21.1
+;; URL: http://github.com/greduan/emacs-theme-gruvbox
+;; Version: 1.26.0
 
 ;; Package-Requires: ((autothemer "0.2"))
 
@@ -69,7 +69,6 @@
 
   (gruvbox-light0_hard     "#ffffc8" "#ffffd7")
   (gruvbox-light0          "#fdf4c1" "#ffffaf")
-  (gruvbox-light0_soft     "#f4e8ba" "#ffffaf")
   (gruvbox-light1          "#ebdbb2" "#ffdfaf")
   (gruvbox-light2          "#d5c4a1" "#bcbcbc")
   (gruvbox-light3          "#bdae93" "#a8a8a8")
@@ -89,7 +88,6 @@
   (gruvbox-neutral_blue    "#83a598" "#87afaf")
   (gruvbox-neutral_purple  "#d3869b" "#d787af")
   (gruvbox-neutral_aqua    "#8ec07c" "#87af87")
-  (gruvbox-neutral_orange  "#fe8019" "#ff8700")
 
   (gruvbox-faded_red       "#9d0006" "#870000")
   (gruvbox-faded_green     "#79740e" "#878700")
@@ -110,17 +108,18 @@
   (gruvbox-white           "#FFFFFF" "#FFFFFF")
   (gruvbox-black           "#000000" "#000000")
   (gruvbox-sienna          "#DD6F48" "#d7875f")
-  (gruvboxslategray4       "#528B8B" "#5f8787")
   (gruvbox-lightblue4      "#66999D" "#5fafaf")
   (gruvbox-burlywood4      "#BBAA97" "#afaf87")
   (gruvbox-aquamarine4     "#83A598" "#87af87")
   (gruvbox-turquoise4      "#61ACBB" "#5fafaf")
 
-  (gruvbox-bg gruvbox-dark0))
+  (gruvbox-bg gruvbox-dark0)
+  (gruvbox-bg_inactive gruvbox-dark0_soft)
+  )
 
  (custom-theme-set-variables 'gruvbox
                              `(ansi-color-names-vector
-                               [,gruvbox1
+                               [,gruvbox-dark1
                                 ,gruvbox-neutral_red
                                 ,gruvbox-neutral_green
                                 ,gruvbox-neutral_yellow

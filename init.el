@@ -128,8 +128,6 @@
   (require 'init-keyfreq)
   (require 'init-httpd)
 
-  ;;set super key
-  (setq ns-right-option-modifier 'super)
   (org-babel-do-load-languages
      'org-babel-load-languages
      '((dot . t)))
@@ -141,7 +139,6 @@
   ;; misc has some crucial tools I need immediately
   ;; comment below line if you want to setup color theme in your own way
   ;;  (if (or (display-graphic-p) (string-match-p "256color"(getenv "TERM"))) (require 'init-color-theme))
-  (add-to-list 'load-path "~/.emacs.d/themes/")
   (add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
 
   (require 'init-emacs-w3m)
@@ -160,7 +157,7 @@
   ;; my personal setup, other major-mode specific setup need it.
   ;; It's dependent on "~/.emacs.d/site-lisp/*.el"
   (load (expand-file-name "~/.custom.el") t nil)
-  
+
   ;; @see https://www.reddit.com/r/emacs/comments/4q4ixw/how_to_forbid_emacs_to_touch_configuration_files/
   ;; See `custom-file' for details.
   (load (setq custom-file (expand-file-name "~/.emacs.d/custom-set-variables.el")) t t))

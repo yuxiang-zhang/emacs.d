@@ -1,18 +1,18 @@
-;;; gruvbox-dark-soft-theme.el --- A retro-groove colour theme for Emacs
+;;; gruvbox-dark-soft-theme.el --- A retro-groove colour theme for Emacs -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2013 Lee Machin
-;; Copyright (c) 2013-2016 Greduan
+;; Copyright (c) 2013-2016 Eduardo Lavaque
 ;; Copyright (c) 2016-2017 Jason Milkins
-;; Copyright (c) 2017 Martijn Terpstra
+;; Copyright (c) 2017-2018 Martijn Terpstra
 
 ;; Author: Jason Milkins <jasonm23@gmail.com>
 ;; (current maintainer)
 ;;
 ;; Author-list: Lee Machin <ljmachin@gmail.com>,
-;;              Greduan <me@greduan.com>
+;;              Eduardo Lavaque <me@greduan.com>
 ;;
-;; URL: http://github.com/Greduan/emacs-theme-gruvbox
-;; Version: 1.21.1
+;; URL: http://github.com/greduan/emacs-theme-gruvbox
+;; Version: 1.26.0
 
 ;; Package-Requires: ((autothemer "0.2"))
 
@@ -69,7 +69,6 @@
 
   (gruvbox-light0_hard     "#ffffc8" "#ffffd7")
   (gruvbox-light0          "#fdf4c1" "#ffffaf")
-  (gruvbox-light0_soft     "#f4e8ba" "#ffffaf")
   (gruvbox-light1          "#ebdbb2" "#ffdfaf")
   (gruvbox-light2          "#d5c4a1" "#bcbcbc")
   (gruvbox-light3          "#bdae93" "#a8a8a8")
@@ -102,13 +101,14 @@
   (gruvbox-white           "#FFFFFF" "#FFFFFF")
   (gruvbox-black           "#000000" "#000000")
   (gruvbox-sienna          "#DD6F48" "#d7875f")
-  (gruvbox-darkslategray4  "#528B8B" "#5f8787")
   (gruvbox-lightblue4      "#66999D" "#5fafaf")
   (gruvbox-burlywood4      "#BBAA97" "#afaf87")
   (gruvbox-aquamarine4     "#83A598" "#87af87")
   (gruvbox-turquoise4      "#61ACBB" "#5fafaf")
 
-  (gruvbox-bg gruvbox-dark0_soft))
+  (gruvbox-bg gruvbox-dark0_soft)
+  (gruvbox-bg_inactive gruvbox-dark1)
+  )
 
  (custom-theme-set-variables 'gruvbox-dark-soft
                              `(ansi-color-names-vector
@@ -119,7 +119,8 @@
                                 ,gruvbox-bright_blue
                                 ,gruvbox-bright_purple
                                 ,gruvbox-bright_aqua
-                                ,gruvbox-light1])))
+                                ,gruvbox-light1])
+			     `(pdf-view-midnight-colors '(,gruvbox-light0 . ,gruvbox-bg))))
 
 ;;;###autoload
 (and load-file-name

@@ -1,7 +1,7 @@
-;;; gruvbox-dark-theme.el --- A retro-groove colour theme for Emacs
+;;; gruvbox-dark-theme.el --- A retro-groove colour theme for Emacs -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2013 Lee Machin
-;; Copyright (c) 2013-2016 Greduan
+;; Copyright (c) 2013-2016 Eduardo Lavaque
 ;; Copyright (c) 2016-2017 Jason Milkins
 ;; Copyright (c) 2017 Martijn Terpstra
 
@@ -9,10 +9,10 @@
 ;; (current maintainer)
 ;;
 ;; Author-list: Lee Machin <ljmachin@gmail.com>,
-;;              Greduan <me@greduan.com>
+;;              Eduardo Lavaque <me@greduan.com>
 ;;
-;; URL: http://github.com/Greduan/emacs-theme-gruvbox
-;; Version: 1.21.1
+;; URL: http://github.com/greduan/emacs-theme-gruvbox
+;; Version: 1.26.0
 
 ;; Package-Requires: ((autothemer "0.2"))
 
@@ -43,6 +43,11 @@
 ;; Jason Milkins (ocodo) has maintained the theme since 2015 and is
 ;; working with the community to add further mode support and align
 ;; the project more closely with Vim Gruvbox.
+;;
+;; Martijn Terpstra has been a major contributor since mid 2017 and
+;; helped to re-implement Gruvbox with autothemer so we can have
+;; multiple variants of Gruvbox (as we do on Vim).  Martijn has also
+;; provided a large number mode support enhancements.
 
 ;;; Code:
 (eval-when-compile
@@ -74,11 +79,10 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
                    gruvbox-dark-hard))
     (load-theme theme t)
     (redisplay t)
-    (load-theme theme t)
     (shell-command (format gruvbox-screenshot-command
                            prefix theme))))
 
-(defmacro gruvbox-deftheme (name description palette reduced-specs &rest body)
+(defmacro gruvbox-deftheme (name description palette &rest body)
   `(autothemer-deftheme
     ,name
     ,description
@@ -156,11 +160,11 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
 
 
      ;; line numbers
-     (line-number                               (:foreground gruvbox-dark2 :background gruvbox-dark0))
-     (line-number-current-line                  (:foreground gruvbox-bright_orange :background gruvbox-dark1))
-     (linum                                     (:foreground gruvbox-dark2 :background gruvbox-dark0))
-     (linum-highlight-face                      (:foreground gruvbox-bright_orange :background gruvbox-dark1))
-     (linum-relative-current-face               (:foreground gruvbox-bright_orange :background gruvbox-dark1))
+     (line-number                               (:foreground gruvbox-dark4 :background gruvbox-dark1))
+     (line-number-current-line                  (:foreground gruvbox-bright_orange :background gruvbox-dark2))
+     (linum                                     (:foreground gruvbox-dark4 :background gruvbox-dark1))
+     (linum-highlight-face                      (:foreground gruvbox-bright_orange :background gruvbox-dark2))
+     (linum-relative-current-face               (:foreground gruvbox-bright_orange :background gruvbox-dark2))
 
      ;; Highlight indentation mode
      (highlight-indentation-current-column-face (:background gruvbox-dark2))
@@ -213,7 +217,7 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
 
      ;; helm
      (helm-M-x-key                              (:foreground gruvbox-bright_orange ))
-     (helm-action                               (:foreground gruvbox-white :underline t))
+     (helm-action                               (:foreground gruvbox-light0_hard :underline t))
      (helm-bookmark-addressbook                 (:foreground gruvbox-bright_red))
      (helm-bookmark-directory                   (:foreground gruvbox-bright_purple))
      (helm-bookmark-file                        (:foreground gruvbox-faded_blue))
@@ -254,6 +258,17 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
      (helm-separator                            (:foreground gruvbox-faded_red))
      (helm-source-header                        (:foreground gruvbox-light2))
      (helm-visible-mark                         (:foreground gruvbox-black :background gruvbox-light3))
+
+     ;;hi-lock-mode
+     (hi-black-b                                (:foreground gruvbox-black :weight 'bold))
+     (hi-black-hb                               (:foreground gruvbox-black :weight 'bold :height 1.5))
+     (hi-blue                                   (:foreground gruvbox-dark0 :background gruvbox-bright_blue))
+     (hi-blue-b                                 (:foreground gruvbox-bright_blue :weight 'bold))
+     (hi-green                                  (:foreground gruvbox-dark0 :background gruvbox-bright_green))
+     (hi-green-b                                (:foreground gruvbox-bright_green :weight 'bold))
+     (hi-pink                                   (:foreground gruvbox-dark0 :background gruvbox-bright_purple))
+     (hi-red-b                                  (:foreground gruvbox-bright_red :weight 'bold))
+     (hi-yellow                                 (:foreground gruvbox-dark0 :background gruvbox-faded_yellow))
 
      ;; company-mode
      (company-scrollbar-bg                      (:background gruvbox-dark1))
@@ -308,7 +323,7 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
      (org-level-7                               (:foreground gruvbox-faded_blue))
      (org-level-8                               (:foreground gruvbox-bright_orange))
      (org-special-keyword                       (:inherit 'font-lock-comment-face))
-     (org-drawer                                (:inherit 'font-lock-function-face))
+     (org-drawer                                (:inherit 'font-lock-function-name-face))
      (org-column                                (:background gruvbox-dark0))
      (org-column-title                          (:background gruvbox-dark0 :underline t :weight 'bold))
      (org-warning                               (:foreground gruvbox-bright_red :weight 'bold :underline nil :bold t))
@@ -366,6 +381,14 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
      (sml/read-only                             (:foreground gruvbox-bright_blue))
      (persp-selected-face                       (:foreground gruvbox-bright_orange))
 
+     ;; powerline
+     (powerline-active0                         (:background gruvbox-dark4 :foreground gruvbox-light0))
+     (powerline-active1                         (:background gruvbox-dark3 :foreground gruvbox-light0))
+     (powerline-active2                         (:background gruvbox-dark2 :foreground gruvbox-light0))
+     (powerline-inactive0                       (:background gruvbox-dark2 :foreground gruvbox-light4))
+     (powerline-inactive1                       (:background gruvbox-dark1 :foreground gruvbox-light4))
+     (powerline-inactive2                       (:background gruvbox-dark0 :foreground gruvbox-light4))
+
      ;; isearch
      (isearch                                   (:foreground gruvbox-black :background gruvbox-bright_orange))
      (lazy-highlight                            (:foreground gruvbox-black :background gruvbox-bright_yellow))
@@ -396,7 +419,7 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
      (aw-leading-char-face                      (:foreground gruvbox-bright_red :background gruvbox-bg :height 4.0))
 
      ;; show-paren
-     (show-paren-match                          (:background gruvbox-dark3 :weight 'bold))
+     (show-paren-match                          (:background gruvbox-dark3 :foreground gruvbox-bright_blue  :weight 'bold))
      (show-paren-mismatch                       (:background gruvbox-bright_red :foreground gruvbox-dark3 :weight 'bold))
 
      ;; ivy
@@ -408,6 +431,7 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
 
      ;; ido
      (ido-only-match                            (:foreground gruvbox-faded_green))
+     (ido-first-match                           (:foreground gruvbox-faded_green))
      (ido-subdir                                (:foreground gruvbox-faded_red))
 
      ;; magit
@@ -465,6 +489,21 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
      (magit-signature-revoked                   (:foreground gruvbox-bright_purple))
      (magit-signature-untrusted                 (:foreground gruvbox-bright_blue))
      (magit-tag                                 (:foreground gruvbox-bright_yellow))
+
+     ;; git-gutter
+     (git-gutter:modified                       (:background gruvbox-faded_blue :foreground gruvbox-faded_blue))
+     (git-gutter:added                          (:background gruvbox-faded_green :foreground gruvbox-faded_green))
+     (git-gutter:deleted                        (:background gruvbox-faded_red :foreground gruvbox-faded_red))
+
+     ;; git-gutter+
+     (git-gutter+-modified                      (:foreground gruvbox-faded_blue :background gruvbox-faded_blue))
+     (git-gutter+-added                         (:foreground gruvbox-faded_green :background gruvbox-faded_green))
+     (git-gutter+-deleted                       (:foreground gruvbox-faded_red :background gruvbox-faded_red))
+
+     ;; git-gutter-fringe
+     (git-gutter-fr:modified                    (:inherit 'git-gutter:modified))
+     (git-gutter-fr:added                       (:inherit 'git-gutter:added))
+     (git-gutter-fr:deleted                     (:inherit 'git-gutter:deleted))
 
      ;; flyspell
      (flyspell-duplicate                        (:underline (:color gruvbox-light4 :style 'line)))
@@ -526,7 +565,47 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
      (diredp-exec-priv                          (:foreground gruvbox-faded_blue  :background gruvbox-dark_blue))
      (diredp-link-priv                          (:foreground gruvbox-faded_aqua  :background gruvbox-dark_aqua))
      (diredp-read-priv                          (:foreground gruvbox-bright_red  :background gruvbox-dark_red))
-     (diredp-write-priv                         (:foreground gruvbox-bright_aqua :background gruvbox-dark_aqua)))
+     (diredp-write-priv                         (:foreground gruvbox-bright_aqua :background gruvbox-dark_aqua))
+
+     ;; eshell
+     (eshell-prompt-face                         (:foreground gruvbox-bright_aqua))
+     (eshell-ls-archive-face                     (:foreground gruvbox-light3))
+     (eshell-ls-backup-face                      (:foreground gruvbox-light4))
+     (eshell-ls-clutter-face                     (:foreground gruvbox-bright_orange :weight 'bold))
+     (eshell-ls-directory-face                   (:foreground gruvbox-bright_yellow))
+     (eshell-ls-executable-face                  (:weight 'bold))
+     (eshell-ls-missing-face                     (:foreground gruvbox-bright_red :bold t))
+     (eshell-ls-product-face                     (:foreground gruvbox-faded_red))
+     (eshell-ls-readonly-face                    (:foreground gruvbox-light2))
+     (eshell-ls-special-face                     (:foreground gruvbox-bright_yellow :bold t))
+     (eshell-ls-symlink-face                     (:foreground gruvbox-bright_red))
+     (eshell-ls-unreadable-face                  (:foreground gruvbox-bright_red :bold t))
+
+     ;; tabbar
+     (tabbar-default                             (:foreground gruvbox-light0 :background gruvbox-dark3 :bold nil :height 1.0 :box (:line-width -5 :color gruvbox-dark3)))
+     (tabbar-separator                           (:foreground gruvbox-light0 :background gruvbox-dark3))
+     (tabbar-highlight                           (:inherit 'highlight))
+     (tabbar-button                              (:foreground gruvbox-dark3 :background gruvbox-dark3 :box nil :line-width 0))
+     (tabbar-button-highlight                    (:inherit 'tabbar-button :inverse-video t))
+     (tabbar-modified                            (:foreground gruvbox-bright_green :background gruvbox-dark3 :box (:line-width -5 :color gruvbox-dark3)))
+     (tabbar-unselected                          (:inherit 'tabbar-default))
+     (tabbar-unselected-modified                 (:inherit 'tabbar-modified))
+     (tabbar-selected                            (:inherit 'tabbar-default :foreground gruvbox-bright_yellow))
+     (tabbar-selected-modified                   (:inherit 'tabbar-selected))
+
+     ;; hydra
+     (hydra-face-red (:foreground gruvbox-bright_red :weight 'bold))
+     (hydra-face-blue (:foreground gruvbox-bright_blue :weight 'bold))
+     (hydra-face-amaranth (:foreground gruvbox-bright_yellow :weight 'bold))
+     (hydra-face-pink (:foreground gruvbox-bright_purple :weight 'bold))
+     (hydra-face-teal (:foreground gruvbox-bright_aqua :weight 'bold))
+
+     ;; which-function-mode
+     (which-func                                 (:foreground gruvbox-faded_blue))
+
+     ;; auto-dim-other-buffers
+     (auto-dim-other-buffers-face                (:background gruvbox-bg_inactive))
+     )
     ,@body))
 
 (provide 'gruvbox)
@@ -536,5 +615,3 @@ Should contain 2 %s constructs to allow for theme name and directory/prefix")
 ;; End:
 
 ;;; gruvbox-dark-theme.el ends here
-
-
