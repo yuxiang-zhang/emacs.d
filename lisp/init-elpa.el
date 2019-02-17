@@ -341,35 +341,15 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'vimrc-mode)
 
 (when *emacs25*
-  (require-package 'zenburn-theme)
-  (require-package 'color-theme-sanityinc-solarized)
-  (require-package 'color-theme-sanityinc-tomorrow)
-  (require-package 'monokai-theme)
-  (require-package 'molokai-theme) ; recommended
-  (require-package 'moe-theme)
   (require-package 'cyberpunk-theme) ; recommended
   (require-package 'ample-theme)
   (require-package 'gotham-theme)
   (require-package 'gruvbox-theme)
-  (require-package 'alect-themes)
-  (require-package 'grandshell-theme)
-  (require-package 'tangotango-theme)
-  (require-package 'gruber-darker-theme)
-  (require-package 'ample-zen-theme)
-  (require-package 'flatland-theme)
-  (require-package 'clues-theme)
   (require-package 'darkburn-theme) ; recommended
   (require-package 'dracula-theme) ; recommended
-  (require-package 'soothe-theme)
-  (require-package 'dakrone-theme)
-  (require-package 'busybee-theme)
-  (require-package 'bubbleberry-theme)
   (require-package 'cherry-blossom-theme)
   (require-package 'heroku-theme)
   (require-package 'hemisu-theme)
-  (require-package 'badger-theme)
-  (require-package 'distinguished-theme)
-  (require-package 'challenger-deep-theme)
   (require-package 'tao-theme))
 ;; }}
 
