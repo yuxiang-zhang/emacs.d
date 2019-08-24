@@ -21,6 +21,7 @@
         ("Filter" "[. \t]filter([ \t]*['\"]\\([^'\"]+\\)" 1)
         ("State" "[. \t]state[(:][ \t]*['\"]\\([^'\"]+\\)" 1)
         ("Factory" "[. \t]factory([ \t]*['\"]\\([^'\"]+\\)" 1)
+        ("Global" "^\\(export const\\|const\\) \\([a-zA-Z][a-zA-Z0-9]*\\) =" 2)
         ("Service" "[. \t]service([ \t]*['\"]\\([^'\"]+\\)" 1)
         ("Module" "[. \t]module( *['\"]\\([a-zA-Z0-9_.]+\\)['\"], *\\[" 1)
         ("ngRoute" "[. \t]when(\\(['\"][a-zA-Z0-9_\/]+['\"]\\)" 1)
@@ -65,7 +66,7 @@
 (setq js2-imenu-extra-generic-expression javascript-common-imenu-regex-list)
 
 (defvar js2-imenu-original-item-lines nil
-  "List of line infomration of original imenu items.")
+  "List of line information of original imenu items.")
 
 (defun js2-imenu--get-line-start-end (pos)
   (let* (b e)
@@ -201,8 +202,7 @@ If HARDCODED-ARRAY-INDEX provided, array index in JSON path is replaced with it.
       (when (string= "json" (file-name-extension buffer-file-name))
         (setq str (format "var a=%s;" str))
         (setq cur-pos (+ cur-pos (length "var a="))))
-      (unless (featurep 'js2-mode)
-        (require 'js2-mode))
+      (unless (featurep 'js2-mode) (require 'js2-mode))
       (with-temp-buffer
         (insert str)
         (js2-init-scanner)
@@ -249,6 +249,14 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
 
 (eval-after-load 'js2-mode
   '(progn
+     ;; {{ I hate the hotkeys to hide things
+     (define-key js2-mode-map (kbd "C-c C-e") nil)
+     (define-key js2-mode-map (kbd "C-c C-s") nil)
+     (define-key js2-mode-map (kbd "C-c C-f") nil)
+     (define-key js2-mode-map (kbd "C-c C-t") nil)
+     (define-key js2-mode-map (kbd "C-c C-o") nil)
+     (define-key js2-mode-map (kbd "C-c C-w") nil)
+     ;; }}
      (defadvice js2-mode-create-imenu-index (around my-js2-mode-create-imenu-index activate)
        (let (rlt extra-rlt)
          ad-do-it
@@ -265,7 +273,7 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
     ;; if use node.js we need nice output
     (js2-imenu-extras-mode)
     (setq mode-name "JS2")
-    (js2-refactor-mode 1)
+    ;; counsel/ivy is more generic and powerful for refactoring
     ;; js2-mode has its own syntax linter
     (flymake-mode -1)
     ;; call js-doc commands through `counsel-M-x'!
@@ -275,24 +283,31 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
 
 (add-hook 'js2-mode-hook 'my-js2-mode-setup)
 
-(setq auto-mode-alist (cons '("\\.json$" . js-mode) auto-mode-alist))
-(setq auto-mode-alist (cons '("\\.jason$" . js-mode) auto-mode-alist))
-(setq auto-mode-alist (cons '("\\.jshintrc$" . js-mode) auto-mode-alist))
+(add-auto-mode 'js-mode
+               "\\.ja?son$"
+               "\\.pac$"
+               "\\.jshintrc$")
 
 (cond
  ((not *no-memory*)
-  (setq auto-mode-alist (cons '("\\.ts\\'" . js2-mode) auto-mode-alist))
-  (setq auto-mode-alist (cons '("\\.js\\(\\.erb\\)?\\'" . js2-mode) auto-mode-alist))
-  ;; facebook ReactJS, use Emacs25 to fix component indentation problem
-  ;; @see https://github.com/mooz/js2-mode/issues/291
-  (add-to-list 'auto-mode-alist '("\\.jsx\\'" . rjsx-mode))
-  (add-to-list 'auto-mode-alist '("components\\/.*\\.js\\'" . rjsx-mode))
-  (add-to-list 'auto-mode-alist '("\\.mock.js\\'" . js-mode))
+  ;; javascript
+  (add-auto-mode 'js2-mode
+                 "\\.js\\(\\.erb\\)?\\'")
+  ;; JSX
+  (add-auto-mode 'rjsx-mode
+                 "\\.jsx\\'"
+                 "components\\/.*\\.js\\'")
+  ;; mock file
+  (add-auto-mode 'js-mode
+                 "\\.mock.js\\'")
   (add-to-list 'interpreter-mode-alist (cons "node" 'js2-mode)))
  (t
-  (setq auto-mode-alist (cons '("\\.js\\(\\.erb\\)?\\'" . js-mode) auto-mode-alist))
-  (setq auto-mode-alist (cons '("\\.ts\\'" . js-mode) auto-mode-alist))))
-(add-to-list 'auto-mode-alist '("\\.babelrc\\'" . js-mode))
+  (add-auto-mode 'js-mode
+                 "\\.js\\(\\.erb\\)?\\'"
+                 "\\.babelrc\\'")))
+
+(add-auto-mode 'typescript-mode
+               "\\.ts$")
 
 ;; @see https://github.com/felipeochoa/rjsx-mode/issues/33
 (eval-after-load 'rjsx-mode
