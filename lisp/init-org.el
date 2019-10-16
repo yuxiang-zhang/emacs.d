@@ -205,6 +205,17 @@ It's value could be customized liked \"/usr/bin/firefox\".
                                      (sequence "WAITING(w@/!)" "SOMEDAY(S)" "PROJECT(P@)" "|" "CANCELLED(c@/!)")))
            org-imenu-depth 9
            ;; @see http://irreal.org/blog/1
-           org-src-fontify-natively t)))
+           org-src-fontify-natively t
+           TeX-auto-untabify t)))
+
+(add-to-list 'auto-mode-alist  '("\\.org$" . org-mode))
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((gnuplot . t)))
+
+(setq org-entities-user
+      '(("space" "~" nil "&nbsp;" " " " " " ")))
 
 (provide 'init-org)
+
